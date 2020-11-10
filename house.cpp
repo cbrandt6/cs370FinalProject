@@ -17,10 +17,15 @@ using namespace vmath;
 using namespace std;
 
 enum VAO_IDs {Cube, NumVAOs};
+enum LightBuffer_IDs {LightBuffer, NumLightBuffers};
+enum MaterialBuffer_IDs {MaterialBuffer, NumMaterialBuffers};
+enum MaterialNames {Brass, RedPlastic};
 enum Buffer_IDs {CubePosBuffer, NumBuffers};
 
 GLuint VAOs[NumVAOs];
 GLuint Buffers[NumBuffers];
+GLuint LightBuffers[NumLightBuffers];
+GLuint MaterialBuffers[NumMaterialBuffers];
 
 GLint numVertices[NumVAOs];
 GLint posCoords = 4;
@@ -30,6 +35,22 @@ vec4 cube_color = {1.0f, 0.0f, 0.0f,1.0f};
 vec3 eye = {3.0f, 3.0f, 0.0f};
 vec3 center = {0.0f, 0.0f, 0.0f};
 vec3 up = {0.0f, 1.0f, 0.0f};
+
+// Lighting Shader variables
+GLuint light_program;
+GLuint light_vPos;
+GLuint light_vNorm;
+GLuint light_camera_mat_loc;
+GLuint light_model_mat_loc;
+GLuint light_proj_mat_loc;
+GLuint light_norm_mat_loc;
+GLuint lights_block_idx;
+GLuint materials_block_idx;
+GLuint num_lights_loc;
+GLuint material_loc;
+GLuint light_eye_loc;
+const char *light_vertex_shader = "../phong.vert";
+const char *light_frag_shader = "../phong.frag";
 
 // Shader variables
 GLuint program;
@@ -67,6 +88,8 @@ vec3 gaze = vec3(5.0f, 6.0f, 0.0f);
 GLint ww,hh;
 
 void build_geometry( );
+void build_lights( );
+void build_materials( );
 void display( );
 void render_scene( );
 void framebuffer_size_callback(GLFWwindow *window, int width, int height);
@@ -155,6 +178,84 @@ void build_geometry( )
     glBindBuffer(GL_ARRAY_BUFFER, Buffers[CubePosBuffer]);
     glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat)*posCoords*numVertices[Cube], vertices.data(), GL_STATIC_DRAW);
 
+}
+
+void build_lights( ) {
+    // White directional light
+    LightProperties whiteDirLight = {DIRECTIONAL, //type
+                                     {0.0f, 0.0f, 0.0f}, //pad
+                                     vec4(0.0f, 0.0f, 0.0f, 1.0f), //ambient
+                                     vec4(1.0f, 1.0f, 1.0f, 1.0f), //diffuse
+                                     vec4(1.0f, 1.0f, 1.0f, 1.0f), //specular
+                                     vec4(0.0f, 0.0f, 0.0f, 1.0f),  //position
+                                     vec4(-1.0f, -1.0f, -1.0f, 0.0f), //direction
+                                     0.0f,   //cutoff
+                                     0.0f,  //exponent
+                                     {0.0f, 0.0f}  //pad2
+    };
+
+    // Green point light
+    LightProperties greenPointLight = {POINT, //type
+                                       {0.0f, 0.0f, 0.0f}, //pad
+                                       vec4(0.0f, 0.0f, 0.0f, 1.0f), //ambient
+                                       vec4(0.0f, 1.0f, 0.0f, 1.0f), //diffuse
+                                       vec4(0.0f, 1.0f, 0.0f, 1.0f), //specular
+                                       vec4(3.0f, 3.0f, 3.0f, 1.0f),  //position
+                                       vec4(0.0f, 0.0f, 0.0f, 0.0f), //direction
+                                       0.0f,   //cutoff
+                                       0.0f,  //exponent
+                                       {0.0f, 0.0f}  //pad2
+    };
+
+    //Red spot light
+    LightProperties redSpotLight = {SPOT, //type
+                                    {0.0f, 0.0f, 0.0f}, //pad
+                                    vec4(0.0f, 0.0f, 0.0f, 1.0f), //ambient
+                                    vec4(0.0f, 1.0f, 0.0f, 1.0f), //diffuse
+                                    vec4(1.0f, 1.0f, 1.0f, 1.0f), //specular
+                                    vec4(0.0f, 6.0f, 0.0f, 1.0f),  //position
+                                    vec4(0.0f, -1.0f, 0.0f, 0.0f), //direction
+                                    30.0f,   //cutoff
+                                    30.0f,  //exponent
+                                    {0.0f, 0.0f}  //pad2
+    };
+
+
+    Lights.push_back(whiteDirLight);
+    Lights.push_back(greenPointLight);
+    Lights.push_back(redSpotLight);
+
+    numLights = Lights.size();
+
+    glGenBuffers(NumLightBuffers, LightBuffers);
+    glBindBuffer(GL_UNIFORM_BUFFER, LightBuffers[LightBuffer]);
+    glBufferData(GL_UNIFORM_BUFFER, Lights.size()*sizeof(LightProperties), Lights.data(), GL_STATIC_DRAW);
+}
+
+void build_materials( ) {
+    // Create brass material
+    MaterialProperties brass = {vec4(0.33f, 0.22f, 0.03f, 1.0f), //ambient
+                                vec4(0.78f, 0.57f, 0.11f, 1.0f), //diffuse
+                                vec4(0.99f, 0.91f, 0.81f, 1.0f), //specular
+                                27.8f, //shininess
+                                {0.0f, 0.0f, 0.0f}  //pad
+    };
+
+    // Create red plastic material
+    MaterialProperties redPlastic = {vec4(0.3f, 0.0f, 0.0f, 1.0f), //ambient
+                                     vec4(0.6f, 0.0f, 0.0f, 1.0f), //diffuse
+                                     vec4(0.8f, 0.6f, 0.6f, 1.0f), //specular
+                                     32.0f, //shininess
+                                     {0.0f, 0.0f, 0.0f}  //pad
+    };
+
+    // Add materials to Materials vector
+    Materials.push_back(brass);
+    Materials.push_back(redPlastic);
+
+    glGenBuffers(NumMaterialBuffers, MaterialBuffers);
+    glBindBuffer(GL_UNIFORM_BUFFER, MaterialBuffers[MaterialBuffer]);
+    glBufferData(GL_UNIFORM_BUFFER, Materials.size()*sizeof(MaterialProperties), Materials.data(), GL_STATIC_DRAW);
 }
 
 void display( )
