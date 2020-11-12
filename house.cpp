@@ -16,11 +16,11 @@
 using namespace vmath;
 using namespace std;
 
-enum VAO_IDs {Cube, Sphere, Torus, Cone, NumVAOs};
+enum VAO_IDs {Cube, Sphere, Torus, Cone, Cylinder, NumVAOs};
 enum ObjBuffer_IDs {PosBuffer, NormBuffer, NumObjBuffers};
 enum LightBuffer_IDs {LightBuffer, NumLightBuffers};
 enum MaterialBuffer_IDs {MaterialBuffer, NumMaterialBuffers};
-enum MaterialNames {Brass, RedPlastic};
+enum MaterialNames {Brass, Floor, Wall, Glass, RedAcrylic, RedPlastic,NumMaterials};
 enum Buffer_IDs {CubePosBuffer, NumBuffers};
 
 GLuint VAOs[NumVAOs];
@@ -33,7 +33,7 @@ GLint numVertices[NumVAOs];
 GLint posCoords = 4;
 GLint normCoords = 3;
 //vec4 cube_color = {1.0f, 0.0f, 0.0f,1.0f};
-const char *objFiles[NumVAOs] = {"../models/cube.obj", "../models/sphere.obj", "../models/torus.obj", "../models/cone.obj"};
+const char *objFiles[NumVAOs] = {"../models/cube.obj", "../models/sphere.obj", "../models/torus.obj", "../models/cone.obj", "../models/cylinder.obj"};
 // Camera
 vec3 eye = {3.0f, 3.0f, 0.0f};
 vec3 center = {0.0f, 0.0f, 0.0f};
@@ -73,7 +73,7 @@ mat4 camera_matrix;
 mat4 normal_matrix;
 vector<LightProperties> Lights;
 vector<MaterialProperties> Materials;
-GLuint MaterialIdx[NumVAOs] = {Brass};
+GLuint MaterialIdx[NumMaterials] = {Brass, Floor, Wall, Glass, RedAcrylic};
 GLuint numLights;
 vec3 axis = {0.0f, 1.0f, 0.0f};
 
@@ -162,6 +162,10 @@ int main(int argc, char**argv)
     glEnable(GL_CULL_FACE);
     glEnable(GL_DEPTH_TEST);
 
+    //Enable Transparency
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
     // Set Initial camera position
     GLfloat x, y, z;
     x = (GLfloat)(radius*sin(azimuth*DEG2RAD)*sin(elevation*DEG2RAD));
@@ -189,6 +193,7 @@ void build_geometry( )
     // Generate vertex arrays for objects
     glGenVertexArrays(NumVAOs, VAOs);
     load_object(Cube);
+    load_object(Cylinder);
 //    load_object(Sphere);
 //    load_object(Torus);
 //    load_object(Cone);
@@ -263,9 +268,37 @@ void build_materials( ) {
                                      32.0f, //shininess
                                      {0.0f, 0.0f, 0.0f}  //pad
     };
+    MaterialProperties floor = {vec4(0.3f, 0.0f, 0.0f, 1.0f), //ambient
+                                     vec4(0.3f, 0.2f, 0.1f, 1.0f), //diffuse
+                                     vec4(0.3f, 0.2f, 0.1f, 1.0f), //specular
+                                     32.0f, //shininess
+                                     {0.0f, 0.0f, 0.0f}  //pad
+    };
+    MaterialProperties wall = {vec4(0.3f, 0.0f, 0.0f, 1.0f), //ambient
+                                vec4(0.5f, 0.5f, 0.5f, 1.0f), //diffuse
+                                vec4(0.5f, 0.5f, 0.5f, 1.0f), //specular
+                                32.0f, //shininess
+                                {0.0f, 0.0f, 0.0f}  //pad
+    };
+    MaterialProperties glass = {vec4(0.0f, 0.0f, 0.0f, 0.6f), //ambient
+                                     vec4(0.0f, 0.3f, 0.3f, 0.6f), //diffuse
+                                     vec4(0.0f, 0.25f, 0.25f, 0.6f), //specular
+                                     45.0f, //shininess
+                                     {0.0f, 0.0f, 0.0f}  //pad
+    };
 
+    MaterialProperties redAcrylic = {vec4(0.3f, 0.0f, 0.0f, 0.5f), //ambient
+                                     vec4(0.6f, 0.0f, 0.0f, 0.5f), //diffuse
+                                     vec4(0.8f, 0.6f, 0.6f, 0.5f), //specular
+                                     32.0f, //shininess
+                                     {0.0f, 0.0f, 0.0f}  //pad
+    };
     // Add materials to Materials vector
     Materials.push_back(brass);
+    Materials.push_back(floor);
+    Materials.push_back(wall);
+    Materials.push_back(glass);
+    Materials.push_back(redAcrylic);
     Materials.push_back(redPlastic);
 
     glGenBuffers(NumMaterialBuffers, MaterialBuffers);
@@ -335,13 +368,6 @@ void render_scene( ) {
     glBindBufferRange(GL_UNIFORM_BUFFER, 1, MaterialBuffers[MaterialBuffer], 0, Materials.size()*sizeof(MaterialProperties));
     // Set num lights
     glUniform1i(num_lights_loc, numLights);
-    // Set cube transformation matrix
-//    trans_matrix = translate(0.0f, 0.0f, 0.0f);
-//    rot_matrix = rotate(0.0f, vec3(0.0f, 0.0f, 1.0f));
-//    scale_matrix = scale(1.0f, 1.0f, 1.0f);
-//	model_matrix = trans_matrix*rot_matrix*scale_matrix;
-//	glUniformMatrix4fv(model_mat_loc, 1, GL_FALSE, model_matrix);
-//	glUniform4fv(vCol, 1, cube_color);
 
     //Draw floor
     scale_matrix = scale(long_wall_length, wall_width, short_wall_length);
@@ -349,131 +375,170 @@ void render_scene( ) {
     normal_matrix = model_matrix.inverse().transpose();
     glUniformMatrix4fv(light_model_mat_loc, 1, GL_FALSE, model_matrix);
     glUniformMatrix4fv(light_norm_mat_loc, 1, GL_FALSE, normal_matrix);
-    glUniform1i(material_loc, MaterialIdx[Brass]);
+    glUniform1i(material_loc, MaterialIdx[Floor]);
 	draw_object(Cube);
 
-//	//Draw left wall
-//    scale_matrix = scale(wall_width, wall_height, short_wall_length);
-//    trans_matrix = translate(-long_wall_length, wall_height, 0.0f);
-//    model_matrix = trans_matrix * scale_matrix;
-//    glUniformMatrix4fv(model_mat_loc, 1, GL_FALSE, model_matrix);
-//    glUniform4fv(vCol, 1, wall_color);
-//    draw_object(Cube);
-//
-//    //Draw right wall
-//    scale_matrix = scale(wall_width, wall_height, short_wall_length);
-//    trans_matrix = translate(long_wall_length, wall_height, 0.0f);
-//    model_matrix = trans_matrix * scale_matrix;
-//    glUniformMatrix4fv(model_mat_loc, 1, GL_FALSE, model_matrix);
-//    glUniform4fv(vCol, 1, wall_color);
-//    draw_object(Cube);
-//
-//    //Draw back wall
-//    scale_matrix = scale(long_wall_length, wall_height, wall_width);
-//    trans_matrix = translate(0.0f, wall_height, -short_wall_length);
-//    model_matrix = trans_matrix * scale_matrix;
-//    glUniformMatrix4fv(model_mat_loc, 1, GL_FALSE, model_matrix);
-//    glUniform4fv(vCol, 1, wall_color);
-//    draw_object(Cube);
-//
-//    //Front wall
-//    scale_matrix = scale((wall_split_size, wall_height, wall_width);
-//    trans_matrix = translate(wall_split_loc_l, wall_height, short_wall_length);
-//    model_matrix = trans_matrix * scale_matrix;
-//    glUniformMatrix4fv(model_mat_loc, 1, GL_FALSE, model_matrix);
-//    glUniform4fv(vCol, 1, wall_color);
-//    draw_object(Cube);
-//
-//    scale_matrix = scale((wall_split_size, wall_height, wall_width);
-//    trans_matrix = translate(wall_split_loc_r, wall_height, short_wall_length);
-//    model_matrix = trans_matrix * scale_matrix;
-//    glUniformMatrix4fv(model_mat_loc, 1, GL_FALSE, model_matrix);
-//    glUniform4fv(vCol, 1, wall_color);
-//    draw_object(Cube);
-//
-//    scale_matrix = scale(wall_height/4.0f, wall_height/2.0f, wall_width);
-//    trans_matrix = translate(0.0f, wall_height+(wall_height/2.0f), short_wall_length);
-//    model_matrix = trans_matrix * scale_matrix;
-//    glUniformMatrix4fv(model_mat_loc, 1, GL_FALSE, model_matrix);
-//    glUniform4fv(vCol, 1, wall_color);
-//    draw_object(Cube);
-//
-//    //Draw door
-//    scale_matrix = scale(wall_height/4.0f, wall_height/2.0f, wall_width);
-//    trans_matrix = translate(0.0f, wall_height/2.0f, short_wall_length);
-//    model_matrix = trans_matrix * scale_matrix;
-//    glUniformMatrix4fv(model_mat_loc, 1, GL_FALSE, model_matrix);
-//    glUniform4fv(vCol, 1, floor_color);
-//    draw_object(Cube);
-//
-//    //Draw window
-//    scale_matrix = scale(window_width, window_height, window_length);
-//    trans_matrix = translate(long_wall_length-1.0f, wall_height, 0.0f);
-//    model_matrix = trans_matrix * scale_matrix;
-//    glUniformMatrix4fv(model_mat_loc, 1, GL_FALSE, model_matrix);
-//    glUniform4fv(vCol, 1, vec4(0.0f, 0.0f, 1.0f, 1.0f));
-//    draw_object(Cube);
-//
-//    //Draw mirror
-//    scale_matrix = scale(wall_width, wall_height*0.66f, short_wall_length*0.66f);
-//    trans_matrix = translate(-long_wall_length+1.0f, wall_height, 0.0f);
-//    model_matrix = trans_matrix * scale_matrix;
-//    glUniformMatrix4fv(model_mat_loc, 1, GL_FALSE, model_matrix);
-//    glUniform4fv(vCol, 1, vec4(0.0f, 0.0f, 1.0f, 1.0f));
-//    draw_object(Cube);
-//
-//    //Draw art
-//    scale_matrix = scale(art_length, art_height, art_width);
-//    trans_matrix = translate(0.0f, wall_height, -short_wall_length+1.0f);
-//    model_matrix = trans_matrix * scale_matrix;
-//    glUniformMatrix4fv(model_mat_loc, 1, GL_FALSE, model_matrix);
-//    glUniform4fv(vCol, 1, art_color);
-//    draw_object(Cube);
-//
-//    //Draw table
-//    scale_matrix = scale(table_top_length, table_leg_height, table_top_width);
-//    trans_matrix = translate(0.0f, table_leg_height, 0.0f);
-//    model_matrix = trans_matrix * scale_matrix;
-//    glUniformMatrix4fv(model_mat_loc, 1, GL_FALSE, model_matrix);
-//    glUniform4fv(vCol, 1, table_color);
-//    draw_object(Cube);
-//
-//    //Chairs
-//    scale_matrix = scale(chair_width, chair_height, chair_width);
-//    trans_matrix = translate(-table_top_length-1.0f, chair_height, 0.0f);
-//    model_matrix = trans_matrix * scale_matrix;
-//    glUniformMatrix4fv(model_mat_loc, 1, GL_FALSE, model_matrix);
-//    glUniform4fv(vCol, 1, chair_color);
-//    draw_object(Cube);
-//
-//    scale_matrix = scale(chair_width, chair_height, chair_width);
-//    trans_matrix = translate(table_top_length+1.0f, chair_height, 0.0f);
-//    model_matrix = trans_matrix * scale_matrix;
-//    glUniformMatrix4fv(model_mat_loc, 1, GL_FALSE, model_matrix);
-//    glUniform4fv(vCol, 1, chair_color);
-//    draw_object(Cube);
-//
-//    scale_matrix = scale(chair_width, chair_height, chair_width);
-//    trans_matrix = translate(0.0f, chair_height, -table_top_width-1.0f);
-//    model_matrix = trans_matrix * scale_matrix;
-//    glUniformMatrix4fv(model_mat_loc, 1, GL_FALSE, model_matrix);
-//    glUniform4fv(vCol, 1, chair_color);
-//    draw_object(Cube);
-//
-//    scale_matrix = scale(chair_width, chair_height, chair_width);
-//    trans_matrix = translate(0.0f, chair_height, table_top_width+1.0f);
-//    model_matrix = trans_matrix * scale_matrix;
-//    glUniformMatrix4fv(model_mat_loc, 1, GL_FALSE, model_matrix);
-//    glUniform4fv(vCol, 1, chair_color);
-//    draw_object(Cube);
-//
-//    //Draw soda
-//    scale_matrix = scale(soda_width, soda_height, soda_width);
-//    trans_matrix = translate(0.0f, soda_loc_height, 0.0f);
-//    model_matrix = trans_matrix * scale_matrix;
-//    glUniformMatrix4fv(model_mat_loc, 1, GL_FALSE, model_matrix);
-//    glUniform4fv(vCol, 1, soda_color);
-//    draw_object(Cube);
+	//Draw left wall
+    scale_matrix = scale(wall_width, wall_height, short_wall_length);
+    trans_matrix = translate(-long_wall_length, wall_height, 0.0f);
+    model_matrix = trans_matrix * scale_matrix;
+    normal_matrix = model_matrix.inverse().transpose();
+    glUniformMatrix4fv(light_model_mat_loc, 1, GL_FALSE, model_matrix);
+    glUniformMatrix4fv(light_norm_mat_loc, 1, GL_FALSE, normal_matrix);
+    glUniform1i(material_loc, MaterialIdx[Wall]);
+    draw_object(Cube);
+
+    //Draw right wall
+    scale_matrix = scale(wall_width, wall_height, short_wall_length);
+    trans_matrix = translate(long_wall_length, wall_height, 0.0f);
+    model_matrix = trans_matrix * scale_matrix;
+    normal_matrix = model_matrix.inverse().transpose();
+    glUniformMatrix4fv(light_model_mat_loc, 1, GL_FALSE, model_matrix);
+    glUniformMatrix4fv(light_norm_mat_loc, 1, GL_FALSE, normal_matrix);
+    glUniform1i(material_loc, MaterialIdx[Wall]);
+    draw_object(Cube);
+
+    //Draw back wall
+    scale_matrix = scale(long_wall_length, wall_height, wall_width);
+    trans_matrix = translate(0.0f, wall_height, -short_wall_length);
+    model_matrix = trans_matrix * scale_matrix;
+    normal_matrix = model_matrix.inverse().transpose();
+    glUniformMatrix4fv(light_model_mat_loc, 1, GL_FALSE, model_matrix);
+    glUniformMatrix4fv(light_norm_mat_loc, 1, GL_FALSE, normal_matrix);
+    glUniform1i(material_loc, MaterialIdx[Wall]);
+    draw_object(Cube);
+
+    //Front wall
+    scale_matrix = scale((wall_split_size, wall_height, wall_width);
+    trans_matrix = translate(wall_split_loc_l, wall_height, short_wall_length);
+    model_matrix = trans_matrix * scale_matrix;
+    normal_matrix = model_matrix.inverse().transpose();
+    glUniformMatrix4fv(light_model_mat_loc, 1, GL_FALSE, model_matrix);
+    glUniformMatrix4fv(light_norm_mat_loc, 1, GL_FALSE, normal_matrix);
+    glUniform1i(material_loc, MaterialIdx[Wall]);
+    draw_object(Cube);
+
+    scale_matrix = scale((wall_split_size, wall_height, wall_width);
+    trans_matrix = translate(wall_split_loc_r, wall_height, short_wall_length);
+    model_matrix = trans_matrix * scale_matrix;
+    normal_matrix = model_matrix.inverse().transpose();
+    glUniformMatrix4fv(light_model_mat_loc, 1, GL_FALSE, model_matrix);
+    glUniformMatrix4fv(light_norm_mat_loc, 1, GL_FALSE, normal_matrix);
+    glUniform1i(material_loc, MaterialIdx[Wall]);
+    draw_object(Cube);
+
+    scale_matrix = scale(wall_height/4.0f, wall_height/2.0f, wall_width);
+    trans_matrix = translate(0.0f, wall_height+(wall_height/2.0f), short_wall_length);
+    model_matrix = trans_matrix * scale_matrix;
+    normal_matrix = model_matrix.inverse().transpose();
+    glUniformMatrix4fv(light_model_mat_loc, 1, GL_FALSE, model_matrix);
+    glUniformMatrix4fv(light_norm_mat_loc, 1, GL_FALSE, normal_matrix);
+    glUniform1i(material_loc, MaterialIdx[Wall]);
+    draw_object(Cube);
+
+    //Draw door
+    scale_matrix = scale(wall_height/4.0f, wall_height/2.0f, wall_width);
+    trans_matrix = translate(0.0f, wall_height/2.0f, short_wall_length);
+    model_matrix = trans_matrix * scale_matrix;
+    normal_matrix = model_matrix.inverse().transpose();
+    glUniformMatrix4fv(light_model_mat_loc, 1, GL_FALSE, model_matrix);
+    glUniformMatrix4fv(light_norm_mat_loc, 1, GL_FALSE, normal_matrix);
+    glUniform1i(material_loc, MaterialIdx[Floor]);
+    draw_object(Cube);
+
+    //Draw table
+    scale_matrix = scale(table_top_length, table_leg_height, table_top_width);
+    trans_matrix = translate(0.0f, table_leg_height, 0.0f);
+    model_matrix = trans_matrix * scale_matrix;
+    normal_matrix = model_matrix.inverse().transpose();
+    glUniformMatrix4fv(light_model_mat_loc, 1, GL_FALSE, model_matrix);
+    glUniformMatrix4fv(light_norm_mat_loc, 1, GL_FALSE, normal_matrix);
+    glUniform1i(material_loc, MaterialIdx[Floor]);
+    draw_object(Cube);
+
+    //Chairs
+    scale_matrix = scale(chair_width, chair_height, chair_width);
+    trans_matrix = translate(-table_top_length-1.0f, chair_height, 0.0f);
+    model_matrix = trans_matrix * scale_matrix;
+    normal_matrix = model_matrix.inverse().transpose();
+    glUniformMatrix4fv(light_model_mat_loc, 1, GL_FALSE, model_matrix);
+    glUniformMatrix4fv(light_norm_mat_loc, 1, GL_FALSE, normal_matrix);
+    glUniform1i(material_loc, MaterialIdx[Floor]);
+    draw_object(Cube);
+
+    scale_matrix = scale(chair_width, chair_height, chair_width);
+    trans_matrix = translate(table_top_length+1.0f, chair_height, 0.0f);
+    model_matrix = trans_matrix * scale_matrix;
+    normal_matrix = model_matrix.inverse().transpose();
+    glUniformMatrix4fv(light_model_mat_loc, 1, GL_FALSE, model_matrix);
+    glUniformMatrix4fv(light_norm_mat_loc, 1, GL_FALSE, normal_matrix);
+    glUniform1i(material_loc, MaterialIdx[Floor]);
+    draw_object(Cube);
+
+    scale_matrix = scale(chair_width, chair_height, chair_width);
+    trans_matrix = translate(0.0f, chair_height, -table_top_width-1.0f);
+    model_matrix = trans_matrix * scale_matrix;
+    normal_matrix = model_matrix.inverse().transpose();
+    glUniformMatrix4fv(light_model_mat_loc, 1, GL_FALSE, model_matrix);
+    glUniformMatrix4fv(light_norm_mat_loc, 1, GL_FALSE, normal_matrix);
+    glUniform1i(material_loc, MaterialIdx[Floor]);
+    draw_object(Cube);
+
+    scale_matrix = scale(chair_width, chair_height, chair_width);
+    trans_matrix = translate(0.0f, chair_height, table_top_width+1.0f);
+    model_matrix = trans_matrix * scale_matrix;
+    normal_matrix = model_matrix.inverse().transpose();
+    glUniformMatrix4fv(light_model_mat_loc, 1, GL_FALSE, model_matrix);
+    glUniformMatrix4fv(light_norm_mat_loc, 1, GL_FALSE, normal_matrix);
+    glUniform1i(material_loc, MaterialIdx[Floor]);
+    draw_object(Cube);
+
+    //Draw mirror
+    scale_matrix = scale(wall_width, wall_height*0.66f, short_wall_length*0.66f);
+    trans_matrix = translate(-long_wall_length+1.0f, wall_height, 0.0f);
+    model_matrix = trans_matrix * scale_matrix;
+    normal_matrix = model_matrix.inverse().transpose();
+    glUniformMatrix4fv(light_model_mat_loc, 1, GL_FALSE, model_matrix);
+    glUniformMatrix4fv(light_norm_mat_loc, 1, GL_FALSE, normal_matrix);
+    glUniform1i(material_loc, MaterialIdx[Floor]);
+    draw_object(Cube);
+
+    //Draw art
+    scale_matrix = scale(art_length, art_height, art_width);
+    trans_matrix = translate(0.0f, wall_height, -short_wall_length+1.0f);
+    model_matrix = trans_matrix * scale_matrix;
+    normal_matrix = model_matrix.inverse().transpose();
+    glUniformMatrix4fv(light_model_mat_loc, 1, GL_FALSE, model_matrix);
+    glUniformMatrix4fv(light_norm_mat_loc, 1, GL_FALSE, normal_matrix);
+    glUniform1i(material_loc, MaterialIdx[Floor]);
+    draw_object(Cube);
+
+    //Draw soda
+    scale_matrix = scale(soda_width, soda_height, soda_width);
+    trans_matrix = translate(0.0f, soda_loc_height, 0.0f);
+    model_matrix = trans_matrix * scale_matrix;
+    normal_matrix = model_matrix.inverse().transpose();
+    glUniformMatrix4fv(light_model_mat_loc, 1, GL_FALSE, model_matrix);
+    glUniformMatrix4fv(light_norm_mat_loc, 1, GL_FALSE, normal_matrix);
+    glUniform1i(material_loc, MaterialIdx[RedPlastic]);
+    draw_object(Cylinder);
+
+    // Translucent Objects
+    //Draw window
+    scale_matrix = scale(window_width, window_height, window_length);
+    trans_matrix = translate(long_wall_length-1.0f, wall_height, 0.0f);
+    model_matrix = trans_matrix * scale_matrix;
+    normal_matrix = model_matrix.inverse().transpose();
+    glUniformMatrix4fv(light_model_mat_loc, 1, GL_FALSE, model_matrix);
+    glUniformMatrix4fv(light_norm_mat_loc, 1, GL_FALSE, normal_matrix);
+    glUniform1i(material_loc, MaterialIdx[Glass]);
+    glDepthMask(GL_FALSE);
+    draw_object(Cube);
+    glDepthMask(GL_TRUE);
+
+
+
+
 
 }
 
