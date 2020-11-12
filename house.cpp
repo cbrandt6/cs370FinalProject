@@ -16,7 +16,8 @@
 using namespace vmath;
 using namespace std;
 
-enum VAO_IDs {Cube, NumVAOs};
+enum VAO_IDs {Cube, Sphere, Torus, Cone, NumVAOs};
+enum ObjBuffer_IDs {PosBuffer, NormBuffer, NumObjBuffers};
 enum LightBuffer_IDs {LightBuffer, NumLightBuffers};
 enum MaterialBuffer_IDs {MaterialBuffer, NumMaterialBuffers};
 enum MaterialNames {Brass, RedPlastic};
@@ -24,13 +25,15 @@ enum Buffer_IDs {CubePosBuffer, NumBuffers};
 
 GLuint VAOs[NumVAOs];
 GLuint Buffers[NumBuffers];
+GLuint ObjBuffers[NumVAOs][NumObjBuffers];
 GLuint LightBuffers[NumLightBuffers];
 GLuint MaterialBuffers[NumMaterialBuffers];
 
 GLint numVertices[NumVAOs];
 GLint posCoords = 4;
-vec4 cube_color = {1.0f, 0.0f, 0.0f,1.0f};
-
+GLint normCoords = 3;
+//vec4 cube_color = {1.0f, 0.0f, 0.0f,1.0f};
+const char *objFiles[NumVAOs] = {"../models/cube.obj", "../models/sphere.obj", "../models/torus.obj", "../models/cone.obj"};
 // Camera
 vec3 eye = {3.0f, 3.0f, 0.0f};
 vec3 center = {0.0f, 0.0f, 0.0f};
@@ -54,6 +57,7 @@ const char *light_frag_shader = "../phong.frag";
 
 // Shader variables
 GLuint program;
+GLuint vNorm;
 GLuint vPos;
 GLuint vCol;
 GLuint model_mat_loc;
@@ -63,9 +67,14 @@ const char *vertex_shader = "../color_mesh.vert";
 const char *frag_shader = "../color_mesh.frag";
 
 // Global state
-const char *models[NumVAOs] = {"../models/cube.obj"};
+//const char *models[NumVAOs] = {"../models/cube.obj"};
 mat4 proj_matrix;
 mat4 camera_matrix;
+mat4 normal_matrix;
+vector<LightProperties> Lights;
+vector<MaterialProperties> Materials;
+GLuint MaterialIdx[NumVAOs] = {Brass};
+GLuint numLights;
 vec3 axis = {0.0f, 1.0f, 0.0f};
 
 // Global spherical coord values
@@ -78,7 +87,6 @@ GLfloat dr = 10.0f;
 GLfloat min_radius = 2.0f;
 
 //"Walking" values
-
 GLfloat delta = 0.0f;
 GLfloat step = 3.0f;
 vec3 dir = vec3(0.0f, 0.0f, 0.0f);
@@ -95,7 +103,8 @@ void render_scene( );
 void framebuffer_size_callback(GLFWwindow *window, int width, int height);
 void key_callback(GLFWwindow *window, int key, int scancode, int action, int mods);
 void mouse_callback(GLFWwindow *window, int button, int action, int mods);
-void draw_obj(GLuint VAO, GLuint Buffer, int numVert);
+void load_object(GLuint obj);
+void draw_object(GLuint obj);
 
 int main(int argc, char**argv)
 {
@@ -119,15 +128,35 @@ int main(int argc, char**argv)
 
 	// Create geometry buffers
     build_geometry();
+    // Create light buffers
+    build_lights();
+    // Create material buffers
+    build_materials();
     
     // Load shaders and associate shader variables
-	ShaderInfo shaders[] = { {GL_VERTEX_SHADER, vertex_shader},{GL_FRAGMENT_SHADER, frag_shader},{GL_NONE, NULL} };
-	program = LoadShaders(shaders);
-    vPos = glGetAttribLocation(program, "vPosition");
-    vCol = glGetUniformLocation(program, "vColor");
-    model_mat_loc = glGetUniformLocation(program, "model_matrix");
-    proj_mat_loc = glGetUniformLocation(program, "proj_matrix");
-    cam_mat_loc = glGetUniformLocation(program, "camera_matrix");
+	//ShaderInfo shaders[] = { {GL_VERTEX_SHADER, vertex_shader},{GL_FRAGMENT_SHADER, frag_shader},{GL_NONE, NULL} };
+	ShaderInfo light_shaders[] = { {GL_VERTEX_SHADER, light_vertex_shader},{GL_FRAGMENT_SHADER, light_frag_shader},{GL_NONE, NULL} };
+	light_program = LoadShaders(light_shaders);
+//	program = LoadShaders(shaders);
+//    //mesh shader variables
+//	vPos = glGetAttribLocation(program, "vPosition");
+//    vCol = glGetUniformLocation(program, "vColor");
+//    model_mat_loc = glGetUniformLocation(program, "model_matrix");
+//    proj_mat_loc = glGetUniformLocation(program, "proj_matrix");
+//    cam_mat_loc = glGetUniformLocation(program, "camera_matrix");
+
+    //Light shader variables
+    light_vPos = glGetAttribLocation(light_program, "vPosition");
+    light_vNorm = glGetAttribLocation(light_program, "vNormal");
+    light_camera_mat_loc = glGetUniformLocation(light_program, "cam_matrix");
+    light_model_mat_loc = glGetUniformLocation(light_program, "model_matrix");
+    light_proj_mat_loc = glGetUniformLocation(light_program, "proj_matrix");
+    light_norm_mat_loc = glGetUniformLocation(light_program, "norm_matrix");
+    lights_block_idx = glGetUniformBlockIndex(light_program, "LightBuffer");
+    materials_block_idx = glGetUniformBlockIndex(light_program, "MaterialBuffer");
+    material_loc = glGetUniformLocation(light_program, "Material");
+    num_lights_loc = glGetUniformLocation(light_program, "NumLights");
+    light_eye_loc = glGetUniformLocation(light_program, "EyePosition");
 
     // Enable depth test
     glEnable(GL_CULL_FACE);
@@ -157,73 +186,59 @@ int main(int argc, char**argv)
 
 void build_geometry( )
 {
-    // Model vectors
-    vector<vec4> vertices;
-    vector<vec2> uvCoords;
-    vector<vec3> normals;
-
-    // Generate vertex arrays and buffers
+    // Generate vertex arrays for objects
     glGenVertexArrays(NumVAOs, VAOs);
-    glGenBuffers(NumBuffers, Buffers);
-
-    // Bind cube vertex array
-    glBindVertexArray(VAOs[Cube]);
-
-    // TODO: Load cube model and store number of vertices
-    loadOBJ(models[Cube], vertices, uvCoords, normals);
-    numVertices[Cube] = vertices.size();
-
-
-    // Bind cube vertex positions
-    glBindBuffer(GL_ARRAY_BUFFER, Buffers[CubePosBuffer]);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat)*posCoords*numVertices[Cube], vertices.data(), GL_STATIC_DRAW);
+    load_object(Cube);
+//    load_object(Sphere);
+//    load_object(Torus);
+//    load_object(Cone);
 
 }
 
 void build_lights( ) {
     // White directional light
-    LightProperties whiteDirLight = {DIRECTIONAL, //type
-                                     {0.0f, 0.0f, 0.0f}, //pad
-                                     vec4(0.0f, 0.0f, 0.0f, 1.0f), //ambient
-                                     vec4(1.0f, 1.0f, 1.0f, 1.0f), //diffuse
-                                     vec4(1.0f, 1.0f, 1.0f, 1.0f), //specular
-                                     vec4(0.0f, 0.0f, 0.0f, 1.0f),  //position
-                                     vec4(-1.0f, -1.0f, -1.0f, 0.0f), //direction
-                                     0.0f,   //cutoff
-                                     0.0f,  //exponent
-                                     {0.0f, 0.0f}  //pad2
-    };
-
-    // Green point light
-    LightProperties greenPointLight = {POINT, //type
+    LightProperties whitePointLight = {POINT,
                                        {0.0f, 0.0f, 0.0f}, //pad
                                        vec4(0.0f, 0.0f, 0.0f, 1.0f), //ambient
-                                       vec4(0.0f, 1.0f, 0.0f, 1.0f), //diffuse
-                                       vec4(0.0f, 1.0f, 0.0f, 1.0f), //specular
-                                       vec4(3.0f, 3.0f, 3.0f, 1.0f),  //position
+                                       vec4(1.0f, 1.0f, 1.0f, 1.0f), //diffuse
+                                       vec4(0.0f, 0.0f, 0.0f, 1.0f), //specular
+                                       vec4(0.0f, 20.0f, 0.0f, 1.0f),  //position
                                        vec4(0.0f, 0.0f, 0.0f, 0.0f), //direction
-                                       0.0f,   //cutoff
-                                       0.0f,  //exponent
-                                       {0.0f, 0.0f}  //pad2
+                                       0.0f,
+                                       0.0f,
+                                       {0.0f, 0.0f} //pad
     };
 
-    //Red spot light
-    LightProperties redSpotLight = {SPOT, //type
-                                    {0.0f, 0.0f, 0.0f}, //pad
-                                    vec4(0.0f, 0.0f, 0.0f, 1.0f), //ambient
-                                    vec4(0.0f, 1.0f, 0.0f, 1.0f), //diffuse
-                                    vec4(1.0f, 1.0f, 1.0f, 1.0f), //specular
-                                    vec4(0.0f, 6.0f, 0.0f, 1.0f),  //position
-                                    vec4(0.0f, -1.0f, 0.0f, 0.0f), //direction
-                                    30.0f,   //cutoff
-                                    30.0f,  //exponent
-                                    {0.0f, 0.0f}  //pad2
-    };
+//    // Green point light
+//    LightProperties greenPointLight = {POINT, //type
+//                                       {0.0f, 0.0f, 0.0f}, //pad
+//                                       vec4(0.0f, 0.0f, 0.0f, 1.0f), //ambient
+//                                       vec4(0.0f, 1.0f, 0.0f, 1.0f), //diffuse
+//                                       vec4(0.0f, 1.0f, 0.0f, 1.0f), //specular
+//                                       vec4(3.0f, 3.0f, 3.0f, 1.0f),  //position
+//                                       vec4(0.0f, 0.0f, 0.0f, 0.0f), //direction
+//                                       0.0f,   //cutoff
+//                                       0.0f,  //exponent
+//                                       {0.0f, 0.0f}  //pad2
+//    };
+//
+//    //Red spot light
+//    LightProperties redSpotLight = {SPOT, //type
+//                                    {0.0f, 0.0f, 0.0f}, //pad
+//                                    vec4(0.0f, 0.0f, 0.0f, 1.0f), //ambient
+//                                    vec4(0.0f, 1.0f, 0.0f, 1.0f), //diffuse
+//                                    vec4(1.0f, 1.0f, 1.0f, 1.0f), //specular
+//                                    vec4(0.0f, 6.0f, 0.0f, 1.0f),  //position
+//                                    vec4(0.0f, -1.0f, 0.0f, 0.0f), //direction
+//                                    30.0f,   //cutoff
+//                                    30.0f,  //exponent
+//                                    {0.0f, 0.0f}  //pad2
+//    };
 
 
-    Lights.push_back(whiteDirLight);
-    Lights.push_back(greenPointLight);
-    Lights.push_back(redSpotLight);
+    Lights.push_back(whitePointLight);
+//    Lights.push_back(greenPointLight);
+//    Lights.push_back(redSpotLight);
 
     numLights = Lights.size();
 
@@ -306,12 +321,20 @@ void render_scene( ) {
     mat4 trans_matrix = mat4().identity();
 
     // Select shader program
-    glUseProgram(program);
+    glUseProgram(light_program);
     // Pass projection matrix to shader
-    glUniformMatrix4fv(proj_mat_loc, 1, GL_FALSE, proj_matrix);
+    glUniformMatrix4fv(light_proj_mat_loc, 1, GL_FALSE, proj_matrix);
     // Pass camera matrix to shader
-    glUniformMatrix4fv(cam_mat_loc, 1, GL_FALSE, camera_matrix);
+    glUniformMatrix4fv(light_camera_mat_loc, 1, GL_FALSE, camera_matrix);
 
+    // Bind lights
+    glUniformBlockBinding(light_program, lights_block_idx, 0);
+    glBindBufferRange(GL_UNIFORM_BUFFER, 0, LightBuffers[LightBuffer], 0, Lights.size()*sizeof(LightProperties));
+    // Bind materials
+    glUniformBlockBinding(light_program, materials_block_idx, 1);
+    glBindBufferRange(GL_UNIFORM_BUFFER, 1, MaterialBuffers[MaterialBuffer], 0, Materials.size()*sizeof(MaterialProperties));
+    // Set num lights
+    glUniform1i(num_lights_loc, numLights);
     // Set cube transformation matrix
 //    trans_matrix = translate(0.0f, 0.0f, 0.0f);
 //    rot_matrix = rotate(0.0f, vec3(0.0f, 0.0f, 1.0f));
@@ -323,133 +346,134 @@ void render_scene( ) {
     //Draw floor
     scale_matrix = scale(long_wall_length, wall_width, short_wall_length);
     model_matrix = scale_matrix;
-    glUniformMatrix4fv(model_mat_loc, 1, GL_FALSE, model_matrix);
-    glUniform4fv(vCol, 1, floor_color);
-	draw_obj(VAOs[Cube], Buffers[CubePosBuffer], numVertices[Cube]);
+    normal_matrix = model_matrix.inverse().transpose();
+    glUniformMatrix4fv(light_model_mat_loc, 1, GL_FALSE, model_matrix);
+    glUniformMatrix4fv(light_norm_mat_loc, 1, GL_FALSE, normal_matrix);
+    glUniform1i(material_loc, MaterialIdx[Brass]);
+	draw_object(Cube);
 
-	//Draw left wall
-    scale_matrix = scale(wall_width, wall_height, short_wall_length);
-    trans_matrix = translate(-long_wall_length, wall_height, 0.0f);
-    model_matrix = trans_matrix * scale_matrix;
-    glUniformMatrix4fv(model_mat_loc, 1, GL_FALSE, model_matrix);
-    glUniform4fv(vCol, 1, wall_color);
-    draw_obj(VAOs[Cube], Buffers[CubePosBuffer], numVertices[Cube]);
-
-    //Draw right wall
-    scale_matrix = scale(wall_width, wall_height, short_wall_length);
-    trans_matrix = translate(long_wall_length, wall_height, 0.0f);
-    model_matrix = trans_matrix * scale_matrix;
-    glUniformMatrix4fv(model_mat_loc, 1, GL_FALSE, model_matrix);
-    glUniform4fv(vCol, 1, wall_color);
-    draw_obj(VAOs[Cube], Buffers[CubePosBuffer], numVertices[Cube]);
-
-    //Draw back wall
-    scale_matrix = scale(long_wall_length, wall_height, wall_width);
-    trans_matrix = translate(0.0f, wall_height, -short_wall_length);
-    model_matrix = trans_matrix * scale_matrix;
-    glUniformMatrix4fv(model_mat_loc, 1, GL_FALSE, model_matrix);
-    glUniform4fv(vCol, 1, wall_color);
-    draw_obj(VAOs[Cube], Buffers[CubePosBuffer], numVertices[Cube]);
-
-    //Front wall
-    scale_matrix = scale((wall_split_size, wall_height, wall_width);
-    trans_matrix = translate(wall_split_loc_l, wall_height, short_wall_length);
-    model_matrix = trans_matrix * scale_matrix;
-    glUniformMatrix4fv(model_mat_loc, 1, GL_FALSE, model_matrix);
-    glUniform4fv(vCol, 1, wall_color);
-    draw_obj(VAOs[Cube], Buffers[CubePosBuffer], numVertices[Cube]);
-
-    scale_matrix = scale((wall_split_size, wall_height, wall_width);
-    trans_matrix = translate(wall_split_loc_r, wall_height, short_wall_length);
-    model_matrix = trans_matrix * scale_matrix;
-    glUniformMatrix4fv(model_mat_loc, 1, GL_FALSE, model_matrix);
-    glUniform4fv(vCol, 1, wall_color);
-    draw_obj(VAOs[Cube], Buffers[CubePosBuffer], numVertices[Cube]);
-
-    scale_matrix = scale(wall_height/4.0f, wall_height/2.0f, wall_width);
-    trans_matrix = translate(0.0f, wall_height+(wall_height/2.0f), short_wall_length);
-    model_matrix = trans_matrix * scale_matrix;
-    glUniformMatrix4fv(model_mat_loc, 1, GL_FALSE, model_matrix);
-    glUniform4fv(vCol, 1, wall_color);
-    draw_obj(VAOs[Cube], Buffers[CubePosBuffer], numVertices[Cube]);
-
-    //Draw door
-    scale_matrix = scale(wall_height/4.0f, wall_height/2.0f, wall_width);
-    trans_matrix = translate(0.0f, wall_height/2.0f, short_wall_length);
-    model_matrix = trans_matrix * scale_matrix;
-    glUniformMatrix4fv(model_mat_loc, 1, GL_FALSE, model_matrix);
-    glUniform4fv(vCol, 1, floor_color);
-    draw_obj(VAOs[Cube], Buffers[CubePosBuffer], numVertices[Cube]);
-
-    //Draw window
-    scale_matrix = scale(window_width, window_height, window_length);
-    trans_matrix = translate(long_wall_length-1.0f, wall_height, 0.0f);
-    model_matrix = trans_matrix * scale_matrix;
-    glUniformMatrix4fv(model_mat_loc, 1, GL_FALSE, model_matrix);
-    glUniform4fv(vCol, 1, vec4(0.0f, 0.0f, 1.0f, 1.0f));
-    draw_obj(VAOs[Cube], Buffers[CubePosBuffer], numVertices[Cube]);
-
-    //Draw mirror
-    scale_matrix = scale(wall_width, wall_height*0.66f, short_wall_length*0.66f);
-    trans_matrix = translate(-long_wall_length+1.0f, wall_height, 0.0f);
-    model_matrix = trans_matrix * scale_matrix;
-    glUniformMatrix4fv(model_mat_loc, 1, GL_FALSE, model_matrix);
-    glUniform4fv(vCol, 1, vec4(0.0f, 0.0f, 1.0f, 1.0f));
-    draw_obj(VAOs[Cube], Buffers[CubePosBuffer], numVertices[Cube]);
-
-    //Draw art
-    scale_matrix = scale(art_length, art_height, art_width);
-    trans_matrix = translate(0.0f, wall_height, -short_wall_length+1.0f);
-    model_matrix = trans_matrix * scale_matrix;
-    glUniformMatrix4fv(model_mat_loc, 1, GL_FALSE, model_matrix);
-    glUniform4fv(vCol, 1, art_color);
-    draw_obj(VAOs[Cube], Buffers[CubePosBuffer], numVertices[Cube]);
-
-    //Draw table
-    scale_matrix = scale(table_top_length, table_leg_height, table_top_width);
-    trans_matrix = translate(0.0f, table_leg_height, 0.0f);
-    model_matrix = trans_matrix * scale_matrix;
-    glUniformMatrix4fv(model_mat_loc, 1, GL_FALSE, model_matrix);
-    glUniform4fv(vCol, 1, table_color);
-    draw_obj(VAOs[Cube], Buffers[CubePosBuffer], numVertices[Cube]);
-
-    //Chairs
-    scale_matrix = scale(chair_width, chair_height, chair_width);
-    trans_matrix = translate(-table_top_length-1.0f, chair_height, 0.0f);
-    model_matrix = trans_matrix * scale_matrix;
-    glUniformMatrix4fv(model_mat_loc, 1, GL_FALSE, model_matrix);
-    glUniform4fv(vCol, 1, chair_color);
-    draw_obj(VAOs[Cube], Buffers[CubePosBuffer], numVertices[Cube]);
-
-    scale_matrix = scale(chair_width, chair_height, chair_width);
-    trans_matrix = translate(table_top_length+1.0f, chair_height, 0.0f);
-    model_matrix = trans_matrix * scale_matrix;
-    glUniformMatrix4fv(model_mat_loc, 1, GL_FALSE, model_matrix);
-    glUniform4fv(vCol, 1, chair_color);
-    draw_obj(VAOs[Cube], Buffers[CubePosBuffer], numVertices[Cube]);
-
-    scale_matrix = scale(chair_width, chair_height, chair_width);
-    trans_matrix = translate(0.0f, chair_height, -table_top_width-1.0f);
-    model_matrix = trans_matrix * scale_matrix;
-    glUniformMatrix4fv(model_mat_loc, 1, GL_FALSE, model_matrix);
-    glUniform4fv(vCol, 1, chair_color);
-    draw_obj(VAOs[Cube], Buffers[CubePosBuffer], numVertices[Cube]);
-
-    scale_matrix = scale(chair_width, chair_height, chair_width);
-    trans_matrix = translate(0.0f, chair_height, table_top_width+1.0f);
-    model_matrix = trans_matrix * scale_matrix;
-    glUniformMatrix4fv(model_mat_loc, 1, GL_FALSE, model_matrix);
-    glUniform4fv(vCol, 1, chair_color);
-    draw_obj(VAOs[Cube], Buffers[CubePosBuffer], numVertices[Cube]);
-
-    //Draw soda
-    scale_matrix = scale(soda_width, soda_height, soda_width);
-    trans_matrix = translate(0.0f, soda_loc_height, 0.0f);
-    model_matrix = trans_matrix * scale_matrix;
-    glUniformMatrix4fv(model_mat_loc, 1, GL_FALSE, model_matrix);
-    glUniform4fv(vCol, 1, soda_color);
-    draw_obj(VAOs[Cube], Buffers[CubePosBuffer], numVertices[Cube]);
-
+//	//Draw left wall
+//    scale_matrix = scale(wall_width, wall_height, short_wall_length);
+//    trans_matrix = translate(-long_wall_length, wall_height, 0.0f);
+//    model_matrix = trans_matrix * scale_matrix;
+//    glUniformMatrix4fv(model_mat_loc, 1, GL_FALSE, model_matrix);
+//    glUniform4fv(vCol, 1, wall_color);
+//    draw_object(Cube);
+//
+//    //Draw right wall
+//    scale_matrix = scale(wall_width, wall_height, short_wall_length);
+//    trans_matrix = translate(long_wall_length, wall_height, 0.0f);
+//    model_matrix = trans_matrix * scale_matrix;
+//    glUniformMatrix4fv(model_mat_loc, 1, GL_FALSE, model_matrix);
+//    glUniform4fv(vCol, 1, wall_color);
+//    draw_object(Cube);
+//
+//    //Draw back wall
+//    scale_matrix = scale(long_wall_length, wall_height, wall_width);
+//    trans_matrix = translate(0.0f, wall_height, -short_wall_length);
+//    model_matrix = trans_matrix * scale_matrix;
+//    glUniformMatrix4fv(model_mat_loc, 1, GL_FALSE, model_matrix);
+//    glUniform4fv(vCol, 1, wall_color);
+//    draw_object(Cube);
+//
+//    //Front wall
+//    scale_matrix = scale((wall_split_size, wall_height, wall_width);
+//    trans_matrix = translate(wall_split_loc_l, wall_height, short_wall_length);
+//    model_matrix = trans_matrix * scale_matrix;
+//    glUniformMatrix4fv(model_mat_loc, 1, GL_FALSE, model_matrix);
+//    glUniform4fv(vCol, 1, wall_color);
+//    draw_object(Cube);
+//
+//    scale_matrix = scale((wall_split_size, wall_height, wall_width);
+//    trans_matrix = translate(wall_split_loc_r, wall_height, short_wall_length);
+//    model_matrix = trans_matrix * scale_matrix;
+//    glUniformMatrix4fv(model_mat_loc, 1, GL_FALSE, model_matrix);
+//    glUniform4fv(vCol, 1, wall_color);
+//    draw_object(Cube);
+//
+//    scale_matrix = scale(wall_height/4.0f, wall_height/2.0f, wall_width);
+//    trans_matrix = translate(0.0f, wall_height+(wall_height/2.0f), short_wall_length);
+//    model_matrix = trans_matrix * scale_matrix;
+//    glUniformMatrix4fv(model_mat_loc, 1, GL_FALSE, model_matrix);
+//    glUniform4fv(vCol, 1, wall_color);
+//    draw_object(Cube);
+//
+//    //Draw door
+//    scale_matrix = scale(wall_height/4.0f, wall_height/2.0f, wall_width);
+//    trans_matrix = translate(0.0f, wall_height/2.0f, short_wall_length);
+//    model_matrix = trans_matrix * scale_matrix;
+//    glUniformMatrix4fv(model_mat_loc, 1, GL_FALSE, model_matrix);
+//    glUniform4fv(vCol, 1, floor_color);
+//    draw_object(Cube);
+//
+//    //Draw window
+//    scale_matrix = scale(window_width, window_height, window_length);
+//    trans_matrix = translate(long_wall_length-1.0f, wall_height, 0.0f);
+//    model_matrix = trans_matrix * scale_matrix;
+//    glUniformMatrix4fv(model_mat_loc, 1, GL_FALSE, model_matrix);
+//    glUniform4fv(vCol, 1, vec4(0.0f, 0.0f, 1.0f, 1.0f));
+//    draw_object(Cube);
+//
+//    //Draw mirror
+//    scale_matrix = scale(wall_width, wall_height*0.66f, short_wall_length*0.66f);
+//    trans_matrix = translate(-long_wall_length+1.0f, wall_height, 0.0f);
+//    model_matrix = trans_matrix * scale_matrix;
+//    glUniformMatrix4fv(model_mat_loc, 1, GL_FALSE, model_matrix);
+//    glUniform4fv(vCol, 1, vec4(0.0f, 0.0f, 1.0f, 1.0f));
+//    draw_object(Cube);
+//
+//    //Draw art
+//    scale_matrix = scale(art_length, art_height, art_width);
+//    trans_matrix = translate(0.0f, wall_height, -short_wall_length+1.0f);
+//    model_matrix = trans_matrix * scale_matrix;
+//    glUniformMatrix4fv(model_mat_loc, 1, GL_FALSE, model_matrix);
+//    glUniform4fv(vCol, 1, art_color);
+//    draw_object(Cube);
+//
+//    //Draw table
+//    scale_matrix = scale(table_top_length, table_leg_height, table_top_width);
+//    trans_matrix = translate(0.0f, table_leg_height, 0.0f);
+//    model_matrix = trans_matrix * scale_matrix;
+//    glUniformMatrix4fv(model_mat_loc, 1, GL_FALSE, model_matrix);
+//    glUniform4fv(vCol, 1, table_color);
+//    draw_object(Cube);
+//
+//    //Chairs
+//    scale_matrix = scale(chair_width, chair_height, chair_width);
+//    trans_matrix = translate(-table_top_length-1.0f, chair_height, 0.0f);
+//    model_matrix = trans_matrix * scale_matrix;
+//    glUniformMatrix4fv(model_mat_loc, 1, GL_FALSE, model_matrix);
+//    glUniform4fv(vCol, 1, chair_color);
+//    draw_object(Cube);
+//
+//    scale_matrix = scale(chair_width, chair_height, chair_width);
+//    trans_matrix = translate(table_top_length+1.0f, chair_height, 0.0f);
+//    model_matrix = trans_matrix * scale_matrix;
+//    glUniformMatrix4fv(model_mat_loc, 1, GL_FALSE, model_matrix);
+//    glUniform4fv(vCol, 1, chair_color);
+//    draw_object(Cube);
+//
+//    scale_matrix = scale(chair_width, chair_height, chair_width);
+//    trans_matrix = translate(0.0f, chair_height, -table_top_width-1.0f);
+//    model_matrix = trans_matrix * scale_matrix;
+//    glUniformMatrix4fv(model_mat_loc, 1, GL_FALSE, model_matrix);
+//    glUniform4fv(vCol, 1, chair_color);
+//    draw_object(Cube);
+//
+//    scale_matrix = scale(chair_width, chair_height, chair_width);
+//    trans_matrix = translate(0.0f, chair_height, table_top_width+1.0f);
+//    model_matrix = trans_matrix * scale_matrix;
+//    glUniformMatrix4fv(model_mat_loc, 1, GL_FALSE, model_matrix);
+//    glUniform4fv(vCol, 1, chair_color);
+//    draw_object(Cube);
+//
+//    //Draw soda
+//    scale_matrix = scale(soda_width, soda_height, soda_width);
+//    trans_matrix = translate(0.0f, soda_loc_height, 0.0f);
+//    model_matrix = trans_matrix * scale_matrix;
+//    glUniformMatrix4fv(model_mat_loc, 1, GL_FALSE, model_matrix);
+//    glUniform4fv(vCol, 1, soda_color);
+//    draw_object(Cube);
 
 }
 
@@ -507,8 +531,6 @@ void key_callback(GLFWwindow *window, int key, int scancode, int action, int mod
     // Compute updated camera position
     gaze = vec3(eye[0] + cos(azimuth*DEG2RAD), eye[1] + sin(radius*DEG2RAD), eye[2] + sin(azimuth*DEG2RAD));
 
-
-
 }
 
 void mouse_callback(GLFWwindow *window, int button, int action, int mods){
@@ -522,10 +544,31 @@ void framebuffer_size_callback(GLFWwindow *window, int width, int height) {
     hh = height;
 }
 
-void draw_obj(GLuint VAO, GLuint Buffer, int numVert) {
-    glBindVertexArray(VAO);
-    glBindBuffer(GL_ARRAY_BUFFER, Buffer);
-    glVertexAttribPointer(vPos, posCoords, GL_FLOAT, GL_FALSE, 0, NULL);
-    glEnableVertexAttribArray(vPos);
-    glDrawArrays(GL_TRIANGLES, 0, numVert);
+void load_object(GLuint obj) {
+    vector<vec4> vertices;
+    vector<vec2> uvCoords;
+    vector<vec3> normals;
+
+    loadOBJ(objFiles[obj], vertices, uvCoords, normals);
+    numVertices[obj] = vertices.size();
+    // Create and load object buffers
+    glGenBuffers(NumObjBuffers, ObjBuffers[obj]);
+    glBindVertexArray(VAOs[obj]);
+    glBindBuffer(GL_ARRAY_BUFFER, ObjBuffers[obj][PosBuffer]);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat)*posCoords*numVertices[obj], vertices.data(), GL_STATIC_DRAW);
+    glBindBuffer(GL_ARRAY_BUFFER, ObjBuffers[obj][NormBuffer]);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat)*normCoords*numVertices[obj], normals.data(), GL_STATIC_DRAW);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+}
+
+void draw_object(GLuint obj){
+    glBindVertexArray(VAOs[obj]);
+    glBindBuffer(GL_ARRAY_BUFFER, ObjBuffers[obj][PosBuffer]);
+    glVertexAttribPointer(light_vPos, posCoords, GL_FLOAT, GL_FALSE, 0, NULL);
+    glEnableVertexAttribArray(light_vPos);
+    glBindBuffer(GL_ARRAY_BUFFER, ObjBuffers[obj][NormBuffer]);
+    glVertexAttribPointer(light_vNorm, normCoords, GL_FLOAT, GL_FALSE, 0, NULL);
+    glEnableVertexAttribArray(light_vNorm);
+    glDrawArrays(GL_TRIANGLES, 0, numVertices[obj]);
+
 }

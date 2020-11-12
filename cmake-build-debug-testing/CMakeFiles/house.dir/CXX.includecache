@@ -94,18 +94,6 @@ GL/glu.h
 vmath.h
 /Users/collinbrandt/SchoolRelated/CurrentSemester/CS370/CS370_Project/vmath.h
 
-/Users/collinbrandt/SchoolRelated/CurrentSemester/CS370/CS370_Project/objloader.cpp
-vector
--
-stdio.h
--
-string
--
-cstring
--
-objloader.h
-/Users/collinbrandt/SchoolRelated/CurrentSemester/CS370/CS370_Project/objloader.h
-
 /Users/collinbrandt/SchoolRelated/CurrentSemester/CS370/CS370_Project/objloader.h
 vmath.h
 /Users/collinbrandt/SchoolRelated/CurrentSemester/CS370/CS370_Project/vmath.h
@@ -141,12 +129,6 @@ intrin.h
 -
 arm_neon.h
 -
-
-/Users/collinbrandt/SchoolRelated/CurrentSemester/CS370/CS370_Project/utils.cpp
-iostream
--
-utils.h
-/Users/collinbrandt/SchoolRelated/CurrentSemester/CS370/CS370_Project/utils.h
 
 /Users/collinbrandt/SchoolRelated/CurrentSemester/CS370/CS370_Project/utils.h
 include/GLEW/glew.h
