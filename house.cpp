@@ -22,18 +22,21 @@ enum LightBuffer_IDs {LightBuffer, NumLightBuffers};
 enum MaterialBuffer_IDs {MaterialBuffer, NumMaterialBuffers};
 enum MaterialNames {Brass, Floor, Wall, Glass, RedAcrylic, RedPlastic,NumMaterials};
 enum Buffer_IDs {CubePosBuffer, NumBuffers};
+enum Textures {NumTextures};
 
 GLuint VAOs[NumVAOs];
 GLuint Buffers[NumBuffers];
 GLuint ObjBuffers[NumVAOs][NumObjBuffers];
 GLuint LightBuffers[NumLightBuffers];
 GLuint MaterialBuffers[NumMaterialBuffers];
+GLuint TextureIDs[NumTextures];
 
 GLint numVertices[NumVAOs];
 GLint posCoords = 4;
 GLint normCoords = 3;
 //vec4 cube_color = {1.0f, 0.0f, 0.0f,1.0f};
 const char *objFiles[NumVAOs] = {"../models/cube.obj", "../models/sphere.obj", "../models/torus.obj", "../models/cone.obj", "../models/cylinder.obj", "../models/fan.obj"};
+const char *texFiles = {};
 // Camera
 vec3 eye = {3.0f, 3.0f, 0.0f};
 vec3 center = {0.0f, 0.0f, 0.0f};
@@ -64,8 +67,19 @@ GLuint vCol;
 GLuint model_mat_loc;
 GLuint proj_mat_loc;
 GLuint cam_mat_loc;
+
+// Texture shader variables
+GLuint tex_program;
+GLuint tex_proj_mat_loc;
+GLuint tex_camera_mat_loc;
+GLuint tex_model_mat_loc;
+GLuint tex_vPos;
+GLuint tex_vTex;
+
 const char *vertex_shader = "../color_mesh.vert";
 const char *frag_shader = "../color_mesh.frag";
+const char *tex_vertex_shader = "../basicTex.vert";
+const char *tex_frag_shader = "../basicTex.frag";
 
 // Global state
 //const char *models[NumVAOs] = {"../models/cube.obj"};
@@ -100,6 +114,7 @@ GLint ww,hh;
 void build_geometry( );
 void build_lights( );
 void build_materials( );
+void build_textures( );
 void display( );
 void render_scene( );
 void framebuffer_size_callback(GLFWwindow *window, int width, int height);
@@ -107,6 +122,8 @@ void key_callback(GLFWwindow *window, int key, int scancode, int action, int mod
 void mouse_callback(GLFWwindow *window, int button, int action, int mods);
 void load_object(GLuint obj);
 void draw_object(GLuint obj);
+void load_tex_object(GLuint obj);
+void draw_tex_object(GLuint obj);
 
 int main(int argc, char**argv)
 {
@@ -319,6 +336,64 @@ void build_materials( ) {
     glGenBuffers(NumMaterialBuffers, MaterialBuffers);
     glBindBuffer(GL_UNIFORM_BUFFER, MaterialBuffers[MaterialBuffer]);
     glBufferData(GL_UNIFORM_BUFFER, Materials.size()*sizeof(MaterialProperties), Materials.data(), GL_STATIC_DRAW);
+}
+
+void build_textures( ) {
+    int w, h, n;
+    int force_channels = 4;
+    unsigned char *image_data;
+
+    // Create textures and activate unit 0
+    glGenTextures( NumTextures,  TextureIDs);
+    glActiveTexture( GL_TEXTURE0 );
+
+    for (int i = 0; i < NumTextures; i++) {
+        // Load image from file
+        image_data = stbi_load(texFiles[i], &w, &h, &n, force_channels);
+        if (!image_data) {
+            fprintf(stderr, "ERROR: could not load %s\n", texFiles[i]);
+        }
+        // NPOT check for power of 2 dimensions
+        if ((w & (w - 1)) != 0 || (h & (h - 1)) != 0) {
+            fprintf(stderr, "WARNING: texture %s is not power-of-2 dimensions\n",
+                    texFiles[i]);
+        }
+        int width_in_bytes = w * 4;
+        unsigned char *top = NULL;
+        unsigned char *bottom = NULL;
+        unsigned char temp = 0;
+        int half_height = h / 2;
+
+        for ( int row = 0; row < half_height; row++ ) {
+            top = image_data + row * width_in_bytes;
+            bottom = image_data + ( h - row - 1 ) * width_in_bytes;
+            for ( int col = 0; col < width_in_bytes; col++ ) {
+                temp = *top;
+                *top = *bottom;
+                *bottom = temp;
+                top++;
+                bottom++;
+            }
+        }
+
+        // TODO: Bind current texture id
+        glBindTexture(GL_TEXTURE_2D, TextureIDs[i]);
+        // TODO: Load image data into texture
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE,
+                     image_data);
+        glGenerateMipmap(GL_TEXTURE_2D);
+        // TODO: Set scaling modes
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+        // TODO: Set wrapping modes
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+        // Set maximum anisotropic filtering for system
+        GLfloat max_aniso = 0.0f;
+        glGetFloatv(GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &max_aniso);
+        // set the maximum!
+        glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, max_aniso);
+    }
 }
 
 void display( )
@@ -669,4 +744,71 @@ void draw_object(GLuint obj){
     glEnableVertexAttribArray(light_vNorm);
     glDrawArrays(GL_TRIANGLES, 0, numVertices[obj]);
 
+}
+
+//void load_tex_object(GLuint obj) {
+//    vector<vec4> vertices;
+//    vector<vec2> uvCoords;
+//    vector<vec3> normals;
+//
+//    loadOBJ(objFiles[obj], vertices, uvCoords, normals);
+//    numVertices[obj] = vertices.size();
+//    // Create and load object buffers
+//    glGenBuffers(NumObjBuffers, ObjBuffers[obj]);
+//    glBindVertexArray(VAOs[obj]);
+//    glBindBuffer(GL_ARRAY_BUFFER, ObjBuffers[obj][PosBuffer]);
+//    glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat)*posCoords*numVertices[obj], vertices.data(), GL_STATIC_DRAW);
+//    glBindBuffer(GL_ARRAY_BUFFER, ObjBuffers[obj][TexBuffer]);
+//    glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat)*texCoords*numVertices[obj], uvCoords.data(), GL_STATIC_DRAW);
+//    glBindBuffer(GL_ARRAY_BUFFER, 0);
+//
+//}
+//
+//void draw_tex_object(GLuint obj){
+//    glBindVertexArray(VAOs[obj]);
+//    glBindBuffer(GL_ARRAY_BUFFER, ObjBuffers[obj][PosBuffer]);
+//    glVertexAttribPointer(tex_vPos, posCoords, GL_FLOAT, GL_FALSE, 0, NULL);
+//    glEnableVertexAttribArray(tex_vPos);
+//    glBindBuffer(GL_ARRAY_BUFFER, ObjBuffers[obj][TexBuffer]);
+//    glVertexAttribPointer(tex_vTex, texCoords, GL_FLOAT, GL_FALSE, 0, NULL);
+//    glEnableVertexAttribArray(tex_vTex);
+//    glDrawArrays(GL_TRIANGLES, 0, numVertices[obj]);
+//}
+
+unsigned int quadVAO = 0;
+unsigned int quadVBO;
+void renderQuad(GLuint shader, GLuint tex)
+{
+    // reset viewport
+    glViewport(0, 0, ww, hh);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    // render Depth map to quad for visual debugging
+    // ---------------------------------------------
+    glUseProgram(shader);
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, tex);
+    if (quadVAO == 0)
+    {
+        float quadVertices[] = {
+                // positions        // texture Coords
+                -1.0f,  1.0f, 0.0f, 0.0f, 1.0f,
+                -1.0f, -1.0f, 0.0f, 0.0f, 0.0f,
+                1.0f,  1.0f, 0.0f, 1.0f, 1.0f,
+                1.0f, -1.0f, 0.0f, 1.0f, 0.0f,
+        };
+        // setup plane VAO
+        glGenVertexArrays(1, &quadVAO);
+        glGenBuffers(1, &quadVBO);
+        glBindVertexArray(quadVAO);
+        glBindBuffer(GL_ARRAY_BUFFER, quadVBO);
+        glBufferData(GL_ARRAY_BUFFER, sizeof(quadVertices), &quadVertices, GL_STATIC_DRAW);
+        glEnableVertexAttribArray(0);
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
+        glEnableVertexAttribArray(1);
+        glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
+    }
+    glBindVertexArray(quadVAO);
+    glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+    glBindVertexArray(0);
 }
