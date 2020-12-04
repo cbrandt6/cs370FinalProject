@@ -52,6 +52,7 @@ GLuint materials_block_idx;
 GLuint num_lights_loc;
 GLuint material_loc;
 GLuint light_eye_loc;
+GLuint light_on_loc;
 const char *light_vertex_shader = "../phong.vert";
 const char *light_frag_shader = "../phong.frag";
 
@@ -75,6 +76,7 @@ vector<LightProperties> Lights;
 vector<MaterialProperties> Materials;
 GLuint MaterialIdx[NumMaterials] = {Brass, Floor, Wall, Glass, RedAcrylic};
 GLuint numLights;
+GLint lightOn[2] = {1,0};
 vec3 axis = {0.0f, 1.0f, 0.0f};
 
 // Global spherical coord values
@@ -157,6 +159,7 @@ int main(int argc, char**argv)
     material_loc = glGetUniformLocation(light_program, "Material");
     num_lights_loc = glGetUniformLocation(light_program, "NumLights");
     light_eye_loc = glGetUniformLocation(light_program, "EyePosition");
+    light_on_loc = glGetUniformLocation(light_program, "LightOn");
 
     // Enable depth test
     glEnable(GL_CULL_FACE);
@@ -214,6 +217,19 @@ void build_lights( ) {
                                        {0.0f, 0.0f} //pad
     };
 
+    LightProperties lessBrightLight = {POINT,
+                                       {0.0f, 0.0f, 0.0f}, //pad
+                                       vec4(0.0f, 0.0f, 0.0f, 1.0f), //ambient
+                                       vec4(0.5f, 0.5f, 0.5f, 1.0f), //diffuse
+                                       vec4(0.0f, 0.0f, 0.0f, 1.0f), //specular
+                                       vec4(0.0f, 20.0f, 0.0f, 1.0f),  //position
+                                       vec4(0.0f, 0.0f, 0.0f, 0.0f), //direction
+                                       0.0f,
+                                       0.0f,
+                                       {0.0f, 0.0f} //pad
+    };
+
+
 //    // Green point light
 //    LightProperties greenPointLight = {POINT, //type
 //                                       {0.0f, 0.0f, 0.0f}, //pad
@@ -242,6 +258,7 @@ void build_lights( ) {
 
 
     Lights.push_back(whitePointLight);
+    Lights.push_back(lessBrightLight);
 //    Lights.push_back(greenPointLight);
 //    Lights.push_back(redSpotLight);
 
@@ -368,6 +385,7 @@ void render_scene( ) {
     glBindBufferRange(GL_UNIFORM_BUFFER, 1, MaterialBuffers[MaterialBuffer], 0, Materials.size()*sizeof(MaterialProperties));
     // Set num lights
     glUniform1i(num_lights_loc, numLights);
+    glUniform1iv(light_on_loc, numLights, lightOn);
 
     //Draw floor
     scale_matrix = scale(long_wall_length, wall_width, short_wall_length);
@@ -595,6 +613,12 @@ void key_callback(GLFWwindow *window, int key, int scancode, int action, int mod
 
     // Compute updated camera position
     gaze = vec3(eye[0] + cos(azimuth*DEG2RAD), eye[1] + sin(radius*DEG2RAD), eye[2] + sin(azimuth*DEG2RAD));
+
+    //Toggle which light is on
+    if(key == GLFW_KEY_L && action == GLFW_PRESS){
+        lightOn[0] = 1 - lightOn[0];
+        lightOn[1] = 1 - lightOn[1];
+    }
 
 }
 
