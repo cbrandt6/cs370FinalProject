@@ -16,7 +16,7 @@
 using namespace vmath;
 using namespace std;
 
-enum VAO_IDs {Cube, Sphere, Torus, Cone, Cylinder, NumVAOs};
+enum VAO_IDs {Cube, Sphere, Torus, Cone, Cylinder, Fan, NumVAOs};
 enum ObjBuffer_IDs {PosBuffer, NormBuffer, NumObjBuffers};
 enum LightBuffer_IDs {LightBuffer, NumLightBuffers};
 enum MaterialBuffer_IDs {MaterialBuffer, NumMaterialBuffers};
@@ -33,7 +33,7 @@ GLint numVertices[NumVAOs];
 GLint posCoords = 4;
 GLint normCoords = 3;
 //vec4 cube_color = {1.0f, 0.0f, 0.0f,1.0f};
-const char *objFiles[NumVAOs] = {"../models/cube.obj", "../models/sphere.obj", "../models/torus.obj", "../models/cone.obj", "../models/cylinder.obj"};
+const char *objFiles[NumVAOs] = {"../models/cube.obj", "../models/sphere.obj", "../models/torus.obj", "../models/cone.obj", "../models/cylinder.obj", "../models/fan.obj"};
 // Camera
 vec3 eye = {3.0f, 3.0f, 0.0f};
 vec3 center = {0.0f, 0.0f, 0.0f};
@@ -197,9 +197,7 @@ void build_geometry( )
     glGenVertexArrays(NumVAOs, VAOs);
     load_object(Cube);
     load_object(Cylinder);
-//    load_object(Sphere);
-//    load_object(Torus);
-//    load_object(Cone);
+    load_object(Fan);
 
 }
 
@@ -540,6 +538,17 @@ void render_scene( ) {
     glUniformMatrix4fv(light_norm_mat_loc, 1, GL_FALSE, normal_matrix);
     glUniform1i(material_loc, MaterialIdx[RedPlastic]);
     draw_object(Cylinder);
+
+    //Draw Fan
+    scale_matrix = scale(fan_width, fan_height, fan_depth);
+    trans_matrix = translate(fan_loc);
+    rot_matrix = rotate(-90.0f, vec3(1.0f, 0.0f, 0.0f));
+    model_matrix = trans_matrix * rot_matrix * scale_matrix;
+    normal_matrix = model_matrix.inverse().transpose();
+    glUniformMatrix4fv(light_model_mat_loc, 1, GL_FALSE, model_matrix);
+    glUniformMatrix4fv(light_norm_mat_loc, 1, GL_FALSE, normal_matrix);
+    glUniform1i(material_loc, MaterialIdx[Floor]);
+    draw_object(Fan);
 
     // Translucent Objects
     //Draw window
