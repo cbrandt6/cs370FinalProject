@@ -483,211 +483,6 @@ void render_scene( ) {
     //Set number of light
     glUniform1iv(light_on_loc, numLights, lightOn);
     traverse_scene_graph(&floor_node, mat4().identity());
-//    // Declare transformation matrices
-//    mat4 model_matrix = mat4().identity();
-//    mat4 scale_matrix = mat4().identity();
-//    mat4 rot_matrix = mat4().identity();
-//    mat4 trans_matrix = mat4().identity();
-//
-//    // Select shader program
-//    glUseProgram(light_program);
-//    // Pass projection matrix to shader
-//    glUniformMatrix4fv(light_proj_mat_loc, 1, GL_FALSE, proj_matrix);
-//    // Pass camera matrix to shader
-//    glUniformMatrix4fv(light_camera_mat_loc, 1, GL_FALSE, camera_matrix);
-//
-//    // Bind lights
-//    glUniformBlockBinding(light_program, lights_block_idx, 0);
-//    glBindBufferRange(GL_UNIFORM_BUFFER, 0, LightBuffers[LightBuffer], 0, Lights.size()*sizeof(LightProperties));
-//    // Bind materials
-//    glUniformBlockBinding(light_program, materials_block_idx, 1);
-//    glBindBufferRange(GL_UNIFORM_BUFFER, 1, MaterialBuffers[MaterialBuffer], 0, Materials.size()*sizeof(MaterialProperties));
-//    // Set num lights
-//    glUniform1i(num_lights_loc, numLights);
-//    glUniform1iv(light_on_loc, numLights, lightOn);
-//
-//    //Draw floor
-//    scale_matrix = scale(long_wall_length, wall_width, short_wall_length);
-//    model_matrix = scale_matrix;
-//    normal_matrix = model_matrix.inverse().transpose();
-//    glUniformMatrix4fv(light_model_mat_loc, 1, GL_FALSE, model_matrix);
-//    glUniformMatrix4fv(light_norm_mat_loc, 1, GL_FALSE, normal_matrix);
-//    glUniform1i(material_loc, MaterialIdx[Floor]);
-//	draw_object(Cube);
-//
-//	//Draw left wall
-//    scale_matrix = scale(wall_width, wall_height, short_wall_length);
-//    trans_matrix = translate(-long_wall_length, wall_height, 0.0f);
-//    model_matrix = trans_matrix * scale_matrix;
-//    normal_matrix = model_matrix.inverse().transpose();
-//    glUniformMatrix4fv(light_model_mat_loc, 1, GL_FALSE, model_matrix);
-//    glUniformMatrix4fv(light_norm_mat_loc, 1, GL_FALSE, normal_matrix);
-//    glUniform1i(material_loc, MaterialIdx[Wall]);
-//    draw_object(Cube);
-//
-//    //Draw right wall
-//    scale_matrix = scale(wall_width, wall_height, short_wall_length);
-//    trans_matrix = translate(long_wall_length, wall_height, 0.0f);
-//    model_matrix = trans_matrix * scale_matrix;
-//    normal_matrix = model_matrix.inverse().transpose();
-//    glUniformMatrix4fv(light_model_mat_loc, 1, GL_FALSE, model_matrix);
-//    glUniformMatrix4fv(light_norm_mat_loc, 1, GL_FALSE, normal_matrix);
-//    glUniform1i(material_loc, MaterialIdx[Wall]);
-//    draw_object(Cube);
-//
-//    //Draw back wall
-//    scale_matrix = scale(long_wall_length, wall_height, wall_width);
-//    trans_matrix = translate(0.0f, wall_height, -short_wall_length);
-//    model_matrix = trans_matrix * scale_matrix;
-//    normal_matrix = model_matrix.inverse().transpose();
-//    glUniformMatrix4fv(light_model_mat_loc, 1, GL_FALSE, model_matrix);
-//    glUniformMatrix4fv(light_norm_mat_loc, 1, GL_FALSE, normal_matrix);
-//    glUniform1i(material_loc, MaterialIdx[Wall]);
-//    draw_object(Cube);
-//
-//    //Front wall
-//    scale_matrix = scale((wall_split_size, wall_height, wall_width);
-//    trans_matrix = translate(wall_split_loc_l, wall_height, short_wall_length);
-//    model_matrix = trans_matrix * scale_matrix;
-//    normal_matrix = model_matrix.inverse().transpose();
-//    glUniformMatrix4fv(light_model_mat_loc, 1, GL_FALSE, model_matrix);
-//    glUniformMatrix4fv(light_norm_mat_loc, 1, GL_FALSE, normal_matrix);
-//    glUniform1i(material_loc, MaterialIdx[Wall]);
-//    draw_object(Cube);
-//
-//    scale_matrix = scale((wall_split_size, wall_height, wall_width);
-//    trans_matrix = translate(wall_split_loc_r, wall_height, short_wall_length);
-//    model_matrix = trans_matrix * scale_matrix;
-//    normal_matrix = model_matrix.inverse().transpose();
-//    glUniformMatrix4fv(light_model_mat_loc, 1, GL_FALSE, model_matrix);
-//    glUniformMatrix4fv(light_norm_mat_loc, 1, GL_FALSE, normal_matrix);
-//    glUniform1i(material_loc, MaterialIdx[Wall]);
-//    draw_object(Cube);
-//
-//    scale_matrix = scale(wall_height/4.0f, wall_height/2.0f, wall_width);
-//    trans_matrix = translate(0.0f, wall_height+(wall_height/2.0f), short_wall_length);
-//    model_matrix = trans_matrix * scale_matrix;
-//    normal_matrix = model_matrix.inverse().transpose();
-//    glUniformMatrix4fv(light_model_mat_loc, 1, GL_FALSE, model_matrix);
-//    glUniformMatrix4fv(light_norm_mat_loc, 1, GL_FALSE, normal_matrix);
-//    glUniform1i(material_loc, MaterialIdx[Wall]);
-//    draw_object(Cube);
-//
-//    //Draw door
-//    scale_matrix = scale(wall_height/4.0f, wall_height/2.0f, wall_width);
-//    trans_matrix = translate(0.0f, wall_height/2.0f, short_wall_length);
-//    model_matrix = trans_matrix * scale_matrix;
-//    normal_matrix = model_matrix.inverse().transpose();
-//    glUniformMatrix4fv(light_model_mat_loc, 1, GL_FALSE, model_matrix);
-//    glUniformMatrix4fv(light_norm_mat_loc, 1, GL_FALSE, normal_matrix);
-//    glUniform1i(material_loc, MaterialIdx[Floor]);
-//    draw_object(Cube);
-//
-//    //Draw table
-//    scale_matrix = scale(table_top_length, table_leg_height, table_top_width);
-//    trans_matrix = translate(0.0f, table_leg_height, 0.0f);
-//    model_matrix = trans_matrix * scale_matrix;
-//    normal_matrix = model_matrix.inverse().transpose();
-//    glUniformMatrix4fv(light_model_mat_loc, 1, GL_FALSE, model_matrix);
-//    glUniformMatrix4fv(light_norm_mat_loc, 1, GL_FALSE, normal_matrix);
-//    glUniform1i(material_loc, MaterialIdx[Floor]);
-//    draw_object(Cube);
-//
-//    //Chairs
-//    scale_matrix = scale(chair_width, chair_height, chair_width);
-//    trans_matrix = translate(-table_top_length-1.0f, chair_height, 0.0f);
-//    model_matrix = trans_matrix * scale_matrix;
-//    normal_matrix = model_matrix.inverse().transpose();
-//    glUniformMatrix4fv(light_model_mat_loc, 1, GL_FALSE, model_matrix);
-//    glUniformMatrix4fv(light_norm_mat_loc, 1, GL_FALSE, normal_matrix);
-//    glUniform1i(material_loc, MaterialIdx[Floor]);
-//    draw_object(Cube);
-//
-//    scale_matrix = scale(chair_width, chair_height, chair_width);
-//    trans_matrix = translate(table_top_length+1.0f, chair_height, 0.0f);
-//    model_matrix = trans_matrix * scale_matrix;
-//    normal_matrix = model_matrix.inverse().transpose();
-//    glUniformMatrix4fv(light_model_mat_loc, 1, GL_FALSE, model_matrix);
-//    glUniformMatrix4fv(light_norm_mat_loc, 1, GL_FALSE, normal_matrix);
-//    glUniform1i(material_loc, MaterialIdx[Floor]);
-//    draw_object(Cube);
-//
-//    scale_matrix = scale(chair_width, chair_height, chair_width);
-//    trans_matrix = translate(0.0f, chair_height, -table_top_width-1.0f);
-//    model_matrix = trans_matrix * scale_matrix;
-//    normal_matrix = model_matrix.inverse().transpose();
-//    glUniformMatrix4fv(light_model_mat_loc, 1, GL_FALSE, model_matrix);
-//    glUniformMatrix4fv(light_norm_mat_loc, 1, GL_FALSE, normal_matrix);
-//    glUniform1i(material_loc, MaterialIdx[Floor]);
-//    draw_object(Cube);
-//
-//    scale_matrix = scale(chair_width, chair_height, chair_width);
-//    trans_matrix = translate(0.0f, chair_height, table_top_width+1.0f);
-//    model_matrix = trans_matrix * scale_matrix;
-//    normal_matrix = model_matrix.inverse().transpose();
-//    glUniformMatrix4fv(light_model_mat_loc, 1, GL_FALSE, model_matrix);
-//    glUniformMatrix4fv(light_norm_mat_loc, 1, GL_FALSE, normal_matrix);
-//    glUniform1i(material_loc, MaterialIdx[Floor]);
-//    draw_object(Cube);
-//
-//    //Draw mirror
-//    scale_matrix = scale(wall_width, wall_height*0.66f, short_wall_length*0.66f);
-//    trans_matrix = translate(-long_wall_length+1.0f, wall_height, 0.0f);
-//    model_matrix = trans_matrix * scale_matrix;
-//    normal_matrix = model_matrix.inverse().transpose();
-//    glUniformMatrix4fv(light_model_mat_loc, 1, GL_FALSE, model_matrix);
-//    glUniformMatrix4fv(light_norm_mat_loc, 1, GL_FALSE, normal_matrix);
-//    glUniform1i(material_loc, MaterialIdx[Floor]);
-//    draw_object(Cube);
-//
-//    //Draw art
-//    scale_matrix = scale(art_length, art_height, art_width);
-//    trans_matrix = translate(0.0f, wall_height, -short_wall_length+1.0f);
-//    model_matrix = trans_matrix * scale_matrix;
-//    normal_matrix = model_matrix.inverse().transpose();
-//    glUniformMatrix4fv(light_model_mat_loc, 1, GL_FALSE, model_matrix);
-//    glUniformMatrix4fv(light_norm_mat_loc, 1, GL_FALSE, normal_matrix);
-//    glUniform1i(material_loc, MaterialIdx[Floor]);
-//    draw_object(Cube);
-//
-//    //Draw soda
-//    scale_matrix = scale(soda_width, soda_height, soda_width);
-//    trans_matrix = translate(0.0f, soda_loc_height, 0.0f);
-//    model_matrix = trans_matrix * scale_matrix;
-//    normal_matrix = model_matrix.inverse().transpose();
-//    glUniformMatrix4fv(light_model_mat_loc, 1, GL_FALSE, model_matrix);
-//    glUniformMatrix4fv(light_norm_mat_loc, 1, GL_FALSE, normal_matrix);
-//    glUniform1i(material_loc, MaterialIdx[RedPlastic]);
-//    draw_object(Cylinder);
-//
-//    //Draw Fan
-//    scale_matrix = scale(fan_width, fan_height, fan_depth);
-//    trans_matrix = translate(fan_loc);
-//    //rot_matrix = rotate(-90.0f, vec3(1.0f, 0.0f, 0.0f));
-//    model_matrix = trans_matrix * scale_matrix;
-//    normal_matrix = model_matrix.inverse().transpose();
-//    glUniformMatrix4fv(light_model_mat_loc, 1, GL_FALSE, model_matrix);
-//    glUniformMatrix4fv(light_norm_mat_loc, 1, GL_FALSE, normal_matrix);
-//    glUniform1i(material_loc, MaterialIdx[Floor]);
-//    draw_object(Fan);
-//
-//    // Translucent Objects
-//    //Draw window
-//    scale_matrix = scale(window_width, window_height, window_length);
-//    trans_matrix = translate(long_wall_length-1.0f, wall_height, 0.0f);
-//    model_matrix = trans_matrix * scale_matrix;
-//    normal_matrix = model_matrix.inverse().transpose();
-//    glUniformMatrix4fv(light_model_mat_loc, 1, GL_FALSE, model_matrix);
-//    glUniformMatrix4fv(light_norm_mat_loc, 1, GL_FALSE, normal_matrix);
-//    glUniform1i(material_loc, MaterialIdx[Glass]);
-//    glDepthMask(GL_FALSE);
-//    draw_object(Cube);
-//    glDepthMask(GL_TRUE);
-
-
-
-
-
 }
 
 void traverse_scene_graph(BaseNode *node, mat4 baseTransform) {
@@ -837,8 +632,184 @@ void build_scene_graph( ) {
     left_wall.set_lights(LightBuffers[LightBuffer], lights_block_idx, Lights.size()*sizeof(LightProperties), num_lights_loc, Lights.size());
     left_wall.set_eye(light_eye_loc, eye);
     left_wall.set_base_transform(translate(-long_wall_length, wall_height, 0.0f) * scale(vec3(wall_width, wall_height, short_wall_length)));
-    left_wall.sibling = NULL;
+    left_wall.sibling = &right_wall;
     left_wall.child = NULL;
+
+    //Right wall
+    right_wall.set_shader(light_program, light_proj_mat_loc, light_camera_mat_loc, light_model_mat_loc);
+    right_wall.NormMatPtr = light_norm_mat_loc;
+    right_wall.set_buffers(VAOs[Cube], ObjBuffers[Cube][PosBuffer], light_vPos, posCoords, ObjBuffers[Cube][NormBuffer], light_vNorm, normCoords, numVertices[Cube]);
+    right_wall.set_materials(MaterialBuffers[MaterialBuffer], materials_block_idx, Materials.size()*sizeof(MaterialProperties), material_loc, MaterialIdx[Wall]);
+    right_wall.set_lights(LightBuffers[LightBuffer], lights_block_idx, Lights.size()*sizeof(LightProperties), num_lights_loc, Lights.size());
+    right_wall.set_eye(light_eye_loc, eye);
+    right_wall.set_base_transform(translate(long_wall_length, wall_height, 0.0f) * scale(vec3(wall_width, wall_height, short_wall_length)));
+    right_wall.sibling = &back_wall;
+    right_wall.child = NULL;
+
+    //Back wall
+    back_wall.set_shader(light_program, light_proj_mat_loc, light_camera_mat_loc, light_model_mat_loc);
+    back_wall.NormMatPtr = light_norm_mat_loc;
+    back_wall.set_buffers(VAOs[Cube], ObjBuffers[Cube][PosBuffer], light_vPos, posCoords, ObjBuffers[Cube][NormBuffer], light_vNorm, normCoords, numVertices[Cube]);
+    back_wall.set_materials(MaterialBuffers[MaterialBuffer], materials_block_idx, Materials.size()*sizeof(MaterialProperties), material_loc, MaterialIdx[Wall]);
+    back_wall.set_lights(LightBuffers[LightBuffer], lights_block_idx, Lights.size()*sizeof(LightProperties), num_lights_loc, Lights.size());
+    back_wall.set_eye(light_eye_loc, eye);
+    back_wall.set_base_transform(translate(0.0f, wall_height, -short_wall_length) * scale(vec3(long_wall_length, wall_height, wall_width)));
+    back_wall.sibling = &front_wall_1;
+    back_wall.child = NULL;
+
+    //Front Wall 1
+    front_wall_1.set_shader(light_program, light_proj_mat_loc, light_camera_mat_loc, light_model_mat_loc);
+    front_wall_1.NormMatPtr = light_norm_mat_loc;
+    front_wall_1.set_buffers(VAOs[Cube], ObjBuffers[Cube][PosBuffer], light_vPos, posCoords, ObjBuffers[Cube][NormBuffer], light_vNorm, normCoords, numVertices[Cube]);
+    front_wall_1.set_materials(MaterialBuffers[MaterialBuffer], materials_block_idx, Materials.size()*sizeof(MaterialProperties), material_loc, MaterialIdx[Wall]);
+    front_wall_1.set_lights(LightBuffers[LightBuffer], lights_block_idx, Lights.size()*sizeof(LightProperties), num_lights_loc, Lights.size());
+    front_wall_1.set_eye(light_eye_loc, eye);
+    front_wall_1.set_base_transform(translate(wall_split_loc_l, wall_height, short_wall_length) * scale(vec3((wall_split_size, wall_height, wall_width)));
+    front_wall_1.sibling = &front_wall_2;
+    front_wall_1.child = NULL;
+
+    //Front Wall 2
+    front_wall_2.set_shader(light_program, light_proj_mat_loc, light_camera_mat_loc, light_model_mat_loc);
+    front_wall_2.NormMatPtr = light_norm_mat_loc;
+    front_wall_2.set_buffers(VAOs[Cube], ObjBuffers[Cube][PosBuffer], light_vPos, posCoords, ObjBuffers[Cube][NormBuffer], light_vNorm, normCoords, numVertices[Cube]);
+    front_wall_2.set_materials(MaterialBuffers[MaterialBuffer], materials_block_idx, Materials.size()*sizeof(MaterialProperties), material_loc, MaterialIdx[Wall]);
+    front_wall_2.set_lights(LightBuffers[LightBuffer], lights_block_idx, Lights.size()*sizeof(LightProperties), num_lights_loc, Lights.size());
+    front_wall_2.set_eye(light_eye_loc, eye);
+    front_wall_2.set_base_transform(translate(wall_split_loc_r, wall_height, short_wall_length) * scale(vec3((wall_split_size, wall_height, wall_width)));
+    front_wall_2.sibling = &front_wall_3;
+    front_wall_2.child = NULL;
+
+    //Front Wall 3
+    front_wall_3.set_shader(light_program, light_proj_mat_loc, light_camera_mat_loc, light_model_mat_loc);
+    front_wall_3.NormMatPtr = light_norm_mat_loc;
+    front_wall_3.set_buffers(VAOs[Cube], ObjBuffers[Cube][PosBuffer], light_vPos, posCoords, ObjBuffers[Cube][NormBuffer], light_vNorm, normCoords, numVertices[Cube]);
+    front_wall_3.set_materials(MaterialBuffers[MaterialBuffer], materials_block_idx, Materials.size()*sizeof(MaterialProperties), material_loc, MaterialIdx[Wall]);
+    front_wall_3.set_lights(LightBuffers[LightBuffer], lights_block_idx, Lights.size()*sizeof(LightProperties), num_lights_loc, Lights.size());
+    front_wall_3.set_eye(light_eye_loc, eye);
+    front_wall_3.set_base_transform(translate(0.0f, wall_height+(wall_height/2.0f), short_wall_length) * scale(wall_height/4.0f, wall_height/2.0f, wall_width));
+    front_wall_3.sibling = &door;
+    front_wall_3.child = NULL;
+
+    //Door
+    door.set_shader(light_program, light_proj_mat_loc, light_camera_mat_loc, light_model_mat_loc);
+    door.NormMatPtr = light_norm_mat_loc;
+    door.set_buffers(VAOs[Cube], ObjBuffers[Cube][PosBuffer], light_vPos, posCoords, ObjBuffers[Cube][NormBuffer], light_vNorm, normCoords, numVertices[Cube]);
+    door.set_materials(MaterialBuffers[MaterialBuffer], materials_block_idx, Materials.size()*sizeof(MaterialProperties), material_loc, MaterialIdx[Floor]);
+    door.set_lights(LightBuffers[LightBuffer], lights_block_idx, Lights.size()*sizeof(LightProperties), num_lights_loc, Lights.size());
+    door.set_eye(light_eye_loc, eye);
+    door.set_base_transform(translate(0.0f, wall_height/2.0f, short_wall_length) * scale(vec3(wall_height/4.0f, wall_height/2.0f, wall_width)));
+    door.sibling = &table;
+    door.child = NULL;
+
+    //Table
+    table.set_shader(light_program, light_proj_mat_loc, light_camera_mat_loc, light_model_mat_loc);
+    table.NormMatPtr = light_norm_mat_loc;
+    table.set_buffers(VAOs[Cube], ObjBuffers[Cube][PosBuffer], light_vPos, posCoords, ObjBuffers[Cube][NormBuffer], light_vNorm, normCoords, numVertices[Cube]);
+    table.set_materials(MaterialBuffers[MaterialBuffer], materials_block_idx, Materials.size()*sizeof(MaterialProperties), material_loc, MaterialIdx[Floor]);
+    table.set_lights(LightBuffers[LightBuffer], lights_block_idx, Lights.size()*sizeof(LightProperties), num_lights_loc, Lights.size());
+    table.set_eye(light_eye_loc, eye);
+    table.set_base_transform(translate(0.0f, table_leg_height, 0.0f) * scale(table_top_length, table_leg_height, table_top_width));
+    table.sibling = &chair_1;
+    table.child = &soda;
+
+    //Soda
+    soda.set_shader(light_program, light_proj_mat_loc, light_camera_mat_loc, light_model_mat_loc);
+    soda.NormMatPtr = light_norm_mat_loc;
+    soda.set_buffers(VAOs[Cylinder], ObjBuffers[Cylinder][PosBuffer], light_vPos, posCoords, ObjBuffers[Cylinder][NormBuffer], light_vNorm, normCoords, numVertices[Cylinder]);
+    soda.set_materials(MaterialBuffers[MaterialBuffer], materials_block_idx, Materials.size()*sizeof(MaterialProperties), material_loc, MaterialIdx[]);
+    soda.set_lights(LightBuffers[LightBuffer], lights_block_idx, Lights.size()*sizeof(LightProperties), num_lights_loc, Lights.size());
+    soda.set_eye(light_eye_loc, eye);
+    soda.set_base_transform(translate(0.0f, soda_loc_height, 0.0f) * scale(soda_width, soda_height, soda_width));
+    soda.sibling = NULL;
+    soda.child = NULL;
+
+    //Chair 1
+    chair_1.set_shader(light_program, light_proj_mat_loc, light_camera_mat_loc, light_model_mat_loc);
+    chair_1.NormMatPtr = light_norm_mat_loc;
+    chair_1.set_buffers(VAOs[Cube], ObjBuffers[Cube][PosBuffer], light_vPos, posCoords, ObjBuffers[Cube][NormBuffer], light_vNorm, normCoords, numVertices[Cube]);
+    chair_1.set_materials(MaterialBuffers[MaterialBuffer], materials_block_idx, Materials.size()*sizeof(MaterialProperties), material_loc, MaterialIdx[Floor]);
+    chair_1.set_lights(LightBuffers[LightBuffer], lights_block_idx, Lights.size()*sizeof(LightProperties), num_lights_loc, Lights.size());
+    chair_1.set_eye(light_eye_loc, eye);
+    chair_1.set_base_transform(translate(-table_top_length-1.0f, chair_height, 0.0f) * scale(chair_width, chair_height, chair_width));
+    chair_1.sibling = &chair_2;
+    chair_1.child = NULL;
+
+    //Chair 2
+    chair_2.set_shader(light_program, light_proj_mat_loc, light_camera_mat_loc, light_model_mat_loc);
+    chair_2.NormMatPtr = light_norm_mat_loc;
+    chair_2.set_buffers(VAOs[Cube], ObjBuffers[Cube][PosBuffer], light_vPos, posCoords, ObjBuffers[Cube][NormBuffer], light_vNorm, normCoords, numVertices[Cube]);
+    chair_2.set_materials(MaterialBuffers[MaterialBuffer], materials_block_idx, Materials.size()*sizeof(MaterialProperties), material_loc, MaterialIdx[Floor]);
+    chair_2.set_lights(LightBuffers[LightBuffer], lights_block_idx, Lights.size()*sizeof(LightProperties), num_lights_loc, Lights.size());
+    chair_2.set_eye(light_eye_loc, eye);
+    chair_2.set_base_transform(translate(table_top_length+1.0f, chair_height, 0.0f) * scale(chair_width, chair_height, chair_width));
+    chair_2.sibling = &chair_3;
+    chair_2.child = NULL;
+
+    //Chair 3
+    chair_3.set_shader(light_program, light_proj_mat_loc, light_camera_mat_loc, light_model_mat_loc);
+    chair_3.NormMatPtr = light_norm_mat_loc;
+    chair_3.set_buffers(VAOs[Cube], ObjBuffers[Cube][PosBuffer], light_vPos, posCoords, ObjBuffers[Cube][NormBuffer], light_vNorm, normCoords, numVertices[Cube]);
+    chair_3.set_materials(MaterialBuffers[MaterialBuffer], materials_block_idx, Materials.size()*sizeof(MaterialProperties), material_loc, MaterialIdx[Floor]);
+    chair_3.set_lights(LightBuffers[LightBuffer], lights_block_idx, Lights.size()*sizeof(LightProperties), num_lights_loc, Lights.size());
+    chair_3.set_eye(light_eye_loc, eye);
+    chair_3.set_base_transform(translate(0.0f, chair_height, -table_top_width-1.0f) * scale(chair_width, chair_height, chair_width));
+    chair_3.sibling = &chair_4;
+    chair_3.child = NULL;
+
+    //Chair 4
+    chair_4.set_shader(light_program, light_proj_mat_loc, light_camera_mat_loc, light_model_mat_loc);
+    chair_4.NormMatPtr = light_norm_mat_loc;
+    chair_4.set_buffers(VAOs[Cube], ObjBuffers[Cube][PosBuffer], light_vPos, posCoords, ObjBuffers[Cube][NormBuffer], light_vNorm, normCoords, numVertices[Cube]);
+    chair_4.set_materials(MaterialBuffers[MaterialBuffer], materials_block_idx, Materials.size()*sizeof(MaterialProperties), material_loc, MaterialIdx[Floor]);
+    chair_4.set_lights(LightBuffers[LightBuffer], lights_block_idx, Lights.size()*sizeof(LightProperties), num_lights_loc, Lights.size());
+    chair_4.set_eye(light_eye_loc, eye);
+    chair_4.set_base_transform(translate(0.0f, chair_height, table_top_width+1.0f) * scale(chair_width, chair_height, chair_width));
+    chair_4.sibling = &mirror;
+    chair_4.child = NULL;
+
+    //Mirror
+    mirror.set_shader(light_program, light_proj_mat_loc, light_camera_mat_loc, light_model_mat_loc);
+    mirror.NormMatPtr = light_norm_mat_loc;
+    mirror.set_buffers(VAOs[Cube], ObjBuffers[Cube][PosBuffer], light_vPos, posCoords, ObjBuffers[Cube][NormBuffer], light_vNorm, normCoords, numVertices[Cube]);
+    mirror.set_materials(MaterialBuffers[MaterialBuffer], materials_block_idx, Materials.size()*sizeof(MaterialProperties), material_loc, MaterialIdx[Floor]);
+    mirror.set_lights(LightBuffers[LightBuffer], lights_block_idx, Lights.size()*sizeof(LightProperties), num_lights_loc, Lights.size());
+    mirror.set_eye(light_eye_loc, eye);
+    mirror.set_base_transform(translate(-long_wall_length+1.0f, wall_height, 0.0f) * scale(wall_width, wall_height*0.66f, short_wall_length*0.66f));
+    mirror.sibling = &art;
+    mirror.child = NULL;
+
+    //Art
+    art.set_shader(light_program, light_proj_mat_loc, light_camera_mat_loc, light_model_mat_loc);
+    art.NormMatPtr = light_norm_mat_loc;
+    art.set_buffers(VAOs[Cube], ObjBuffers[Cube][PosBuffer], light_vPos, posCoords, ObjBuffers[Cube][NormBuffer], light_vNorm, normCoords, numVertices[Cube]);
+    art.set_materials(MaterialBuffers[MaterialBuffer], materials_block_idx, Materials.size()*sizeof(MaterialProperties), material_loc, MaterialIdx[Floor]);
+    art.set_lights(LightBuffers[LightBuffer], lights_block_idx, Lights.size()*sizeof(LightProperties), num_lights_loc, Lights.size());
+    art.set_eye(light_eye_loc, eye);
+    art.set_base_transform(translate(0.0f, wall_height, -short_wall_length+1.0f) * scale(art_length, art_height, art_width));
+    art.sibling = &window;
+    art.child = NULL;
+
+    //Window
+    window.set_shader(light_program, light_proj_mat_loc, light_camera_mat_loc, light_model_mat_loc);
+    window.NormMatPtr = light_norm_mat_loc;
+    window.set_buffers(VAOs[Cube], ObjBuffers[Cube][PosBuffer], light_vPos, posCoords, ObjBuffers[Cube][NormBuffer], light_vNorm, normCoords, numVertices[Cube]);
+    window.set_materials(MaterialBuffers[MaterialBuffer], materials_block_idx, Materials.size()*sizeof(MaterialProperties), material_loc, MaterialIdx[Floor]);
+    window.set_lights(LightBuffers[LightBuffer], lights_block_idx, Lights.size()*sizeof(LightProperties), num_lights_loc, Lights.size());
+    window.set_eye(light_eye_loc, eye);
+    window.set_base_transform(translate(long_wall_length-1.0f, wall_height, 0.0f) * scale(window_width, window_height, window_length));
+    window.sibling = &fan;
+    window.child = NULL;
+
+    //Fan
+    fan.set_shader(light_program, light_proj_mat_loc, light_camera_mat_loc, light_model_mat_loc);
+    fan.NormMatPtr = light_norm_mat_loc;
+    fan.set_buffers(VAOs[Cube], ObjBuffers[Cube][PosBuffer], light_vPos, posCoords, ObjBuffers[Cube][NormBuffer], light_vNorm, normCoords, numVertices[Cube]);
+    fan.set_materials(MaterialBuffers[MaterialBuffer], materials_block_idx, Materials.size()*sizeof(MaterialProperties), material_loc, MaterialIdx[Floor]);
+    fan.set_lights(LightBuffers[LightBuffer], lights_block_idx, Lights.size()*sizeof(LightProperties), num_lights_loc, Lights.size());
+    fan.set_eye(light_eye_loc, eye);
+    fan.set_base_transform(translate(fan_loc) * scale(fan_width, fan_height, fan_depth));
+    fan.sibling = NULL;
+    fan.child = NULL;
 }
 
 //void load_tex_object(GLuint obj) {
