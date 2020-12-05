@@ -6,6 +6,28 @@
 
 #IncludeRegexTransform: 
 
+/Users/collinbrandt/SchoolRelated/CurrentSemester/CS370/CS370_Project/BaseNode.h
+vgl.h
+/Users/collinbrandt/SchoolRelated/CurrentSemester/CS370/CS370_Project/vgl.h
+vmath.h
+/Users/collinbrandt/SchoolRelated/CurrentSemester/CS370/CS370_Project/vmath.h
+
+/Users/collinbrandt/SchoolRelated/CurrentSemester/CS370/CS370_Project/MatNode.h
+vgl.h
+/Users/collinbrandt/SchoolRelated/CurrentSemester/CS370/CS370_Project/vgl.h
+vmath.h
+/Users/collinbrandt/SchoolRelated/CurrentSemester/CS370/CS370_Project/vmath.h
+BaseNode.h
+/Users/collinbrandt/SchoolRelated/CurrentSemester/CS370/CS370_Project/BaseNode.h
+
+/Users/collinbrandt/SchoolRelated/CurrentSemester/CS370/CS370_Project/TexNode.h
+vgl.h
+/Users/collinbrandt/SchoolRelated/CurrentSemester/CS370/CS370_Project/vgl.h
+vmath.h
+/Users/collinbrandt/SchoolRelated/CurrentSemester/CS370/CS370_Project/vmath.h
+BaseNode.h
+/Users/collinbrandt/SchoolRelated/CurrentSemester/CS370/CS370_Project/BaseNode.h
+
 /Users/collinbrandt/SchoolRelated/CurrentSemester/CS370/CS370_Project/constants.h
 vmath.h
 /Users/collinbrandt/SchoolRelated/CurrentSemester/CS370/CS370_Project/vmath.h
@@ -29,6 +51,10 @@ lighting.h
 /Users/collinbrandt/SchoolRelated/CurrentSemester/CS370/CS370_Project/lighting.h
 constants.h
 /Users/collinbrandt/SchoolRelated/CurrentSemester/CS370/CS370_Project/constants.h
+MatNode.h
+/Users/collinbrandt/SchoolRelated/CurrentSemester/CS370/CS370_Project/MatNode.h
+TexNode.h
+/Users/collinbrandt/SchoolRelated/CurrentSemester/CS370/CS370_Project/TexNode.h
 
 /Users/collinbrandt/SchoolRelated/CurrentSemester/CS370/CS370_Project/include/GLEW/glew.h
 stddef.h

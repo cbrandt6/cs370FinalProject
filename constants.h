@@ -53,7 +53,7 @@ vmath::vec4 switch_color = {1.0f, 1.0f, 0.0f, 1.0f};
 vmath::vec4 art_color = {0.0f, 0.9f, 1.0f, 1.0f};
 
 //Fan
-#define fan_width 0.2f
-#define fan_height 0.2f
-#define fan_depth 0.2f
-vmath::vec3 fan_loc = {0.0f, 21.0f, 0.0f};
+#define fan_width 3.0f
+#define fan_height 3.0f
+#define fan_depth 3.0f
+vmath::vec3 fan_loc = {0.0f, 23.0f, 0.0f};
